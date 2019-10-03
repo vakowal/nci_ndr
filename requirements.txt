@@ -1,0 +1,12 @@
+# requirements.txt
+# --------------------
+# This file records the packages and requirements needed in order for
+# the analysis scripts for NCI_NDR to work correctly.
+# 
+# Assuming Python 2.7
+
+GDAL>=2.0,<3.0
+Shapely>=1.6.4
+numpy>=1.11.0,!=1.16.0
+pygeoprocessing>=1.7.0,<1.8.0
+taskgraph[niced_processes]>=0.8.2
