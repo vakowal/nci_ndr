@@ -16,6 +16,8 @@ env:
 	$(BASHLIKE_SHELL_COMMAND) "$(ENV_ACTIVATE) && $(PIP) install "C:/Users/ginge/Documents/Python/nci_ndr/Shapely-1.6.4.post2-cp36-cp36m-win_amd64.whl""
 	$(BASHLIKE_SHELL_COMMAND) "$(ENV_ACTIVATE) && $(PIP) install "C:/Users/ginge/Documents/Python/nci_ndr/GDAL-2.4.1-cp36-cp36m-win_amd64.whl""
 	$(BASHLIKE_SHELL_COMMAND) "$(ENV_ACTIVATE) && $(PIP) install "C:/Users/ginge/Documents/Python/nci_ndr/Rtree-0.8.3-cp36-cp36m-win_amd64.whl""
+	$(BASHLIKE_SHELL_COMMAND) "$(ENV_ACTIVATE) && $(PIP) install numpy"
+	$(BASHLIKE_SHELL_COMMAND) "$(ENV_ACTIVATE) && $(PIP) install pandas"    
 	$(BASHLIKE_SHELL_COMMAND) "$(ENV_ACTIVATE) && $(PIP) install pygeoprocessing"
 
 clean:
