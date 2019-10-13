@@ -6,38 +6,55 @@ between catchment characteristics like landcover, topography, and
 precipitation, and nitrite/nitrate loadings in surface water.
 
 Major tasks:
- - delineate catchment basins for each surface water observation point
  - summarize covariate datasets within catchment basins
 
 """
+import os
+
 from osgeo import gdal
+from osgeo import osr
 from osgeo import ogr
 import pygeoprocessing
 import pygeoprocessing.routing
-import taskgraph
+# import taskgraph
 
 # shapefile containing locations of stations with NOxN observations
-_STATION_SHP_PATH = "F:/NCI_NDR/Data worldbank/station_data/station_df_noxn_surface_gte_1990.shp"
-_FLOW_DIR_PATH = "F:/NCI_NDR/Data flow direction DRT/globe_fdr_shedsandh1k.asc"
+_STATION_SHP_PATH = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/WB_surface_stations_noxn_obs_sa_bas.shp"
+
+# shapefile containing watershed area corresponding to WB stations
+_WB_BASIN_SHP_PATH = "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v2/WB_surface_stations_noxn_for_snapping_ContribArea.shp"
 
 
-def delineate_basins(outlet_shapefile_path):
-    """Delineate watersheds from points representing watershed outlets.
+def map_FID_to_field(shp_path, field):
+    """Map FID of each feature, according to GetFID(), to the given field.
 
-    Steal code from delineateit.py to hack a custom watershed delineation
-    routine.
-    The goal is, for each point in the outlet shapefile, to identify pixels
-    that contribute topographically to the pixel containing that point.
-    Use the flow direction raster used by Barbarossa et al (CITE) so that we
-    can as much as possible match the basins contributing to streamflow
-    estimates in the FLO1K dataset.
+    This allows for mapping of a dictionary of zonal statistics, where keys
+    correspond to FID according to GetFID(), to another field that is preferred
+    to identify features.
+
+    Parameters:
+        shp_path (string): path to shapefile
+        field (string): the field to map to FID
+
+    Returns:
+        dictionary indexed by the FID of each feature retrieved with GetFID(),
+            and values are the value of `field` for the feature
 
     """
+    vector = gdal.OpenEx(shp_path, gdal.OF_VECTOR)
+    layer = vector.GetLayer()
+    FID_to_field = {
+        feature.GetFID(): feature.GetField(field) for feature in layer}
+
+    # clean up
+    vector = None
+    layer = None
+    return FID_to_field
 
 
 def main():
     """Program entry point."""
-    delineate_basins(_STATION_SHP)
+
 
 
 if __name__ == '__main__':
