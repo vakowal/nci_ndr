@@ -1,6 +1,6 @@
 # Make recipies for NCI NDR project
 
-PYTHON = python36
+PYTHON = python37
 ENV = env
 BASHLIKE_SHELL_COMMAND := cmd.exe /C
 ENV_SCRIPTS = $(ENV)\Scripts
@@ -19,6 +19,7 @@ env:
 	$(BASHLIKE_SHELL_COMMAND) "$(ENV_ACTIVATE) && $(PIP) install numpy"
 	$(BASHLIKE_SHELL_COMMAND) "$(ENV_ACTIVATE) && $(PIP) install pandas"    
 	$(BASHLIKE_SHELL_COMMAND) "$(ENV_ACTIVATE) && $(PIP) install pygeoprocessing"
+	$(BASHLIKE_SHELL_COMMAND) "$(ENV_ACTIVATE) && $(PIP) install taskgraph"
 
 clean:
 	-$(RMDIR) $(ENV)
