@@ -1,6 +1,6 @@
 # Make recipies for NCI NDR project
 
-PYTHON = python37
+PYTHON = python36
 ENV = env
 BASHLIKE_SHELL_COMMAND := cmd.exe /C
 ENV_SCRIPTS = $(ENV)\Scripts
