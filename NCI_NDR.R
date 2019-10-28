@@ -154,6 +154,7 @@ flo1k_stack <- stack(flo1k_av_ncdf)
 flo1k_subs <- flo1k_stack[[temporal_subset]]
 subs_mean <- calc(flo1k_subs, fun=mean)
 writeRaster(subs_mean, "F:/NCI_NDR/Data streamflow FLO1K/average_flow_1990_2015.tif")
+subs_mean <- raster("F:/NCI_NDR/Data streamflow FLO1K/average_flow_1990_2015.tif")
 
 # average minimum flow across years, 1990-2015
 flo1k_min_ncdf <- "F:/NCI_NDR/Data streamflow FLO1K/FLO1K.5min.ts.1960.2015.qmi.nc"
@@ -161,6 +162,7 @@ flo1k_min_stack <- stack(flo1k_min_ncdf)
 flo1k_min_subs <- flo1k_min_stack[[temporal_subset]]
 min_subs_mean <- calc(flo1k_min_subs, fun=mean)
 writeRaster(min_subs_mean, "F:/NCI_NDR/Data streamflow FLO1K/average_min_flow_1990_2015.tif")
+min_subs_mean <- raster("F:/NCI_NDR/Data streamflow FLO1K/average_min_flow_1990_2015.tif")
 
 # average maximum flow across years, 1990-2015
 flo1k_max_ncdf <- "F:/NCI_NDR/Data streamflow FLO1K/FLO1K.5min.ts.1960.2015.qma.nc"
@@ -168,11 +170,17 @@ flo1k_max_stack <- stack(flo1k_max_ncdf)
 flo1k_max_subs <- flo1k_max_stack[[temporal_subset]]
 max_subs_mean <- calc(flo1k_max_subs, fun=mean)
 writeRaster(max_subs_mean, "F:/NCI_NDR/Data streamflow FLO1K/average_max_flow_1990_2015.tif")
+max_subs_mean <- raster("F:/NCI_NDR/Data streamflow FLO1K/average_max_flow_1990_2015.tif")
 
 # ratio of average min to average, 1990-2015
 div_fun <- function(x, y) { return (x/y) }
 min_avg_ratio <- overlay(min_subs_mean, subs_mean, fun=div_fun)
 writeRaster(min_avg_ratio, "F:/NCI_NDR/Data streamflow FLO1K/min_div_average_flow_1990_2015.tif")
+
+# ratio of mean flow to range (max - min)
+flash_fun <- function(mean, min, max) { return (mean / (max - min)) }
+flash_ratio <- overlay(subs_mean, min_subs_mean, max_subs_mean, fun=flash_fun)
+writeRaster(flash_ratio, "F:/NCI_NDR/Data streamflow FLO1K/mean_div_range_1990_2015.tif")
 
 # calculate mean irrigation area across years from HYDE3.2 dataset
 irri_raster_list = list()
