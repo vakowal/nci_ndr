@@ -34,7 +34,7 @@ _BASIN_CENTROID_PATH = "F:/NCI_NDR/Data Hydrosheds/basin outlines/centroid_world
 # outer data directory
 _DATA_DIR = "F:/NCI_NDR"
 
-# covariate datasets
+# covariate datasets, native resolution
 _COVARIATE_PATH_DICT = {
     'n_export': "F:/NCI_NDR/Data NDR/nutrient_deficit_5min_cur_compressed_md5_031d4bb444325835315a2cc825be3fd4.tif",
     'average_flow': "F:/NCI_NDR/Data streamflow FLO1K/average_flow_1990_2015.tif",
@@ -48,6 +48,12 @@ _COVARIATE_PATH_DICT = {
     'sanitation_table': "F:/NCI_NDR/Data sanitation/no_sanitation_provision_avg_2000-2015.csv",
     'countries_raster': "F:/NCI_NDR/Data world borders/TM_WORLD_BORDERS-03_countryid.tif",
 }
+
+# path to % urban covariate at 5 min resolution
+_URBAN_5MIN_PATH = "F:/NCI_NDR/Data urban extent GRUMP/perc_urban_5min.tif"
+
+# path to countries raster at 5 min resolution
+_COUNTRIES_5MIN_PATH = "F:/NCI_NDR/Data world borders/TM_WORLD_BORDERS-03_countryid_5min.tif"
 
 
 def zonal_sum_to_csv(input_raster_path, sum_field_name, save_as):
@@ -128,6 +134,51 @@ def aggregate_proportion_irrigation(area_df_path, save_as):
     irrigated_area_df.to_csv(save_as, index=False)
 
 
+def proportion_irrigation_at_point(save_as):
+    """Calculate proportion irrigated area for pixels intersecting points.
+
+    From a raster containing pixel areas, get the area of the pixel
+    intersecting each point feature; from a raster containing irrigated area,
+    get the irrigated area of the pixel intersecting each point feature;
+    calculate proportion irrigated area for each point feature by dividing
+    irrigated area by pixel area.
+
+    Parameters:
+        save_as (string): path to save the proportion irrigated area as csv
+
+    Returns:
+        None
+
+    """
+    temp_dir = tempfile.mkdtemp()
+    # get area of pixel intersecting station features
+    area_df_path = os.path.join(temp_dir, 'area_by_point.csv')
+    raster_values_at_points(
+        _STATION_SHP_PATH, _COVARIATE_PATH_DICT['area'], 1, 'pixel_area',
+        area_df_path)
+
+    # get irrigated area in pixel intersecting station features
+    irrigated_area_df_path = os.path.join(
+        temp_dir, 'irrigated_area_by_point.csv')
+    raster_values_at_points(
+        _STATION_SHP_PATH, _COVARIATE_PATH_DICT['irrigated_area'], 1,
+        'irrigated_area', irrigated_area_df_path)
+
+    # calculate proportion of the pixel that is irrigated by dividing
+    area_df = pandas.read_csv(area_df_path)
+    area_df = area_df.merge(
+        pandas.read_csv(irrigated_area_df_path), on='OBJECTID',
+        suffixes=(False, False), validate="one_to_one")
+    area_df['proportion_irrigated_area'] = (
+        area_df['irrigated_area'] / area_df['pixel_area'])
+    area_df.drop([
+        'irrigated_area', 'pixel_area'], axis='columns', inplace=True)
+    area_df.to_csv(save_as, index=False)
+
+    # clean up temporary files
+    shutil.rmtree(temp_dir)
+
+
 def reclassify_urban_extent(save_as):
     """Reclassify urban extent raster.
 
@@ -154,15 +205,22 @@ def reclassify_urban_extent(save_as):
         urban_datatype, urban_nodata)
 
 
-def reclassify_countries_by_sanitation(save_as):
-    """Reclassify countries raster by sanitation provision per country."""
+def reclassify_countries_by_sanitation(countries_raster, save_as):
+    """Reclassify countries raster by sanitation provision per country.
+
+    Parameters:
+        countries_raster (string): path to raster identifying countries
+        save_as (string): location to save raster where country id values have
+            been reclassified to proportion without sanitation provision.
+
+    """
     sanitation_df = pandas.read_csv(_COVARIATE_PATH_DICT['sanitation_table'])
     countryid_to_sanitation = pandas.Series(
         sanitation_df.no_san_provision.values,
         index=sanitation_df.countryid).to_dict()
     pygeoprocessing.reclassify_raster(
-        (_COVARIATE_PATH_DICT['countries_raster'], 1),
-        countryid_to_sanitation, save_as, gdal.GDT_Float32, -9999.)
+        (countries_raster, 1), countryid_to_sanitation, save_as,
+        gdal.GDT_Float32, -9999.)
 
 
 def map_FID_to_field(shp_path, field):
@@ -386,7 +444,7 @@ def aggregate_covariates(intermediate_dir_path, combined_covariate_table_path):
             avg_flow_zonal_mean_path)
 
     flash_flow_zonal_mean_path = os.path.join(
-        intermediate_dir_path, 'avg_flow_zonal_mean.csv')
+        intermediate_dir_path, 'flash_flow_zonal_mean.csv')
     df_path_list.append(flash_flow_zonal_mean_path)
     if not os.path.exists(flash_flow_zonal_mean_path):
         zonal_mean_value_to_csv(
@@ -443,7 +501,9 @@ def aggregate_covariates(intermediate_dir_path, combined_covariate_table_path):
         intermediate_dir_path, 'proportion_no_sanitation.csv')
     df_path_list.append(proportion_no_sanitation_df_path)
     if not os.path.exists(proportion_no_sanitation_df_path):
-        reclassify_countries_by_sanitation(temp_val_dict['sanitation'])
+        reclassify_countries_by_sanitation(
+            _COVARIATE_PATH_DICT['countries_raster'],
+            temp_val_dict['sanitation'])
         zonal_mean_value_to_csv(
             temp_val_dict['sanitation'], 'proportion_no_sanitation',
             proportion_no_sanitation_df_path)
@@ -461,14 +521,117 @@ def aggregate_covariates(intermediate_dir_path, combined_covariate_table_path):
     shutil.rmtree(temp_dir)
 
 
+def collect_covariates_5min(
+        intermediate_dir_path, combined_covariate_table_path):
+    """Extract covariate values at station points from 5min resolution rasters.
+
+    Parameters:
+        intermediate_dir_path (string): path to folder where persistent
+            intermediate outputs should be written, namely a csv for each
+            covariate
+        combined_covariate_table_path (string): path to location where the
+            combined covariate table should be written, i.e. the table
+            containing all covariate values
+
+    Side effects:
+        writes csv tables, one per covariate, inside `intermediate_dir_path`
+        writes combined table of covariates at `combined_covariate_table_path`
+
+    Returns:
+        None
+
+    """
+    # list of paths to data frames each containing aggregated values for one
+    # covariate
+    df_path_list = []
+
+    temp_dir = tempfile.mkdtemp()
+    temp_val_dict = {
+        'sanitation': os.path.join(temp_dir, 'sanitation.tif'),
+    }
+
+    if not os.path.exists(intermediate_dir_path):
+        os.makedirs(intermediate_dir_path)
+
+    n_export_path = os.path.join(intermediate_dir_path, 'n_export.csv')
+    df_path_list.append(n_export_path)
+    if not os.path.exists(n_export_path):
+        raster_values_at_points(
+            _STATION_SHP_PATH, _COVARIATE_PATH_DICT['n_export'], 1,
+            'n_export', n_export_path)
+
+    average_flow_path = os.path.join(intermediate_dir_path, 'average_flow.csv')
+    df_path_list.append(average_flow_path)
+    if not os.path.exists(average_flow_path):
+        raster_values_at_points(
+            _STATION_SHP_PATH, _COVARIATE_PATH_DICT['average_flow'], 1,
+            'average_flow', average_flow_path)
+
+    flash_flow_path = os.path.join(intermediate_dir_path, 'flash_flow.csv')
+    df_path_list.append(flash_flow_path)
+    if not os.path.exists(flash_flow_path):
+        raster_values_at_points(
+            _STATION_SHP_PATH, _COVARIATE_PATH_DICT['flash_flow'], 1,
+            'flash_flow', flash_flow_path)
+
+    precip_variability_path = os.path.join(
+        intermediate_dir_path, 'precip_variability.csv')
+    df_path_list.append(precip_variability_path)
+    if not os.path.exists(precip_variability_path):
+        raster_values_at_points(
+            _STATION_SHP_PATH, _COVARIATE_PATH_DICT['precip_variability'], 1,
+            'precip_variability', precip_variability_path)
+
+    climate_zone_path = os.path.join(intermediate_dir_path, 'climate_zone.csv')
+    df_path_list.append(climate_zone_path)
+    if not os.path.exists(climate_zone_path):
+        raster_values_at_points(
+            _STATION_SHP_PATH, _COVARIATE_PATH_DICT['climate_zones'], 1,
+            'climate_zone', climate_zone_path)
+
+    irrigated_area_path = os.path.join(
+        intermediate_dir_path, 'irrigated_area.csv')
+    df_path_list.append(irrigated_area_path)
+    if not os.path.exists(irrigated_area_path):
+        proportion_irrigation_at_point(irrigated_area_path)
+
+    population_path = os.path.join(intermediate_dir_path, 'population.csv')
+    df_path_list.append(population_path)
+    if not os.path.exists(population_path):
+        raster_values_at_points(
+            _STATION_SHP_PATH, _COVARIATE_PATH_DICT['population'], 1,
+            'population', population_path)
+
+    urban_extent_path = os.path.join(intermediate_dir_path, 'urban_extent.csv')
+    df_path_list.append(urban_extent_path)
+    if not os.path.exists(urban_extent_path):
+        raster_values_at_points(
+            _STATION_SHP_PATH, _URBAN_5MIN_PATH, 1, 'proportion_urban',
+            urban_extent_path)
+
+    sanitation_path = os.path.join(intermediate_dir_path, 'sanitation.csv')
+    df_path_list.append(sanitation_path)
+    if not os.path.exists(sanitation_path):
+        reclassify_countries_by_sanitation(
+            _COUNTRIES_5MIN_PATH, temp_val_dict['sanitation'])
+        raster_values_at_points(
+            _STATION_SHP_PATH, temp_val_dict['sanitation'], 1,
+            'percent_no_sanitation', sanitation_path)
+
+    merge_data_frame_list(df_path_list, combined_covariate_table_path)
+
+    # clean up temporary files
+    shutil.rmtree(temp_dir)
+
+
 def main():
     """Program entry point."""
-    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/Rafa_watersheds_v3'
+    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_5min_pixel'
     intermediate_dir_path = os.path.join(
         out_dir, 'intermediate_df_dir')
     combined_covariate_table_path = os.path.join(
         out_dir, 'combined_covariates.csv')
-    aggregate_covariates(
+    collect_covariates_5min(
         intermediate_dir_path, combined_covariate_table_path)
 
 
