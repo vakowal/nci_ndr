@@ -1,108 +1,12 @@
-# data prep for NCI Nitrate ~ NDR for World Bank
+# Spatial data processing for NCI-NDR project
+library(raster)
 
 # match table: objectid+GEMS station number, all surface stations with noxn observations
 OBJECTID_MATCH_CSV <- "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_objectid_stnid_match_table.csv"
 STN_OBJ_MATCH_DF <- read.csv(OBJECTID_MATCH_CSV)
 
-# stations with noxn observations
-SURFACE_NOXN_STATION_CSV <- "F:/NCI_NDR/Data worldbank/station_data/WB_surface_stations_noxn_obs.csv"
-
 # stations with change in N fertilizer application rates, 1980-2013
 DELTA_FERTILIZER_1980_2013_CSV <- "F:/NCI_NDR/Data fertilizer Lu Tian/perc_change_mean_N_application_1980_2013.csv"
-DELTA_FERT_DF <- read.csv(DELTA_FERTILIZER_1980_2013_CSV)
-
-# NOxN observations, all stations
-NOXN_OBSERVATIONS_CSV <- "F:/NCI_NDR/Data worldbank/station_data/noxn_obs_all.csv"
-  
-library(ggplot2)
-
-# NOXN training data from World bank
-training_data_csv <- "F:/NCI_NDR/Data worldbank/training_data/NOXN/noxn_04_03_19.csv"
-training_data <- read.csv(training_data_csv)
-
-# collect min and max values from training data by column
-min_by_column <- as.data.frame(apply(training_data, 2, min))
-min_by_column$variable <- row.names(min_by_column)
-colnames(min_by_column) <- c('min_value', 'variable')
-max_by_column <- as.data.frame(apply(training_data, 2, max))
-max_by_column$variable <- row.names(max_by_column)
-colnames(max_by_column) <- c('max_value', 'variable')
-col_summary <- merge(min_by_column, max_by_column)
-write.csv(col_summary, "F:/NCI_NDR/Data worldbank/training_data/NOXN/min_max_values.csv")
-
-# station data from World Bank
-# parameter metadata: observation descriptions
-parameter_metadata_csv <- "F:/NCI_NDR/Data worldbank/station_data/parameter_metadata.csv"
-parameter_metadata_df <- read.csv(parameter_metadata_csv)
-
-# observations data related to Nitrogen
-N_files_dir <- "F:/NCI_NDR/Data worldbank/station_data/Nitrogen_sheets_exported"
-N_files_list <- list.files(N_files_dir)
-N_df_list <- list()
-for (file in N_files_list) {
-  df <- read.csv(paste(N_files_dir, file, sep='/'))
-  N_df_list[[file]] <- df
-}
-N_measurement_df <- do.call(rbind, N_df_list)
-N_measurement_df$Sample.Date <- as.Date(N_measurement_df$Sample.Date, format="%Y-%m-%d")
-Noxn_cols <- colnames(N_measurement_df)[c(1:2, 8:9)]
-Noxn_obs_df <- N_measurement_df[N_measurement_df$Parameter.Code == "NOxN", Noxn_cols]
-write.csv(Noxn_obs_df, NOXN_OBSERVATIONS_CSV, row.names=FALSE)
-
-Noxn_obs_df <- read.csv(NOXN_OBSERVATIONS_CSV)
-Noxn_obs_df$Sample.Date <- as.Date(Noxn_obs_df$Sample.Date, format="%Y-%m-%d")
-
-# station metadata
-station_metadata_csv <- "F:/NCI_NDR/Data worldbank/station_data/station_metadata.csv"
-stn_df <- read.csv(station_metadata_csv)
-
-# how many stations of each type (groundwater vs surface water) have noxn measurements?
-stn_cols <- colnames(stn_df)[c(1, 4, 5, 8:10, 15:16)]
-stn_subset <- stn_df[, stn_cols]
-stn_subset[stn_subset$Water.Type == 'Groundwater station', 'ground_v_surface'] <- 'groundwater'
-stn_subset[stn_subset$Water.Type == 'Lake station', 'ground_v_surface'] <- 'surface'
-stn_subset[stn_subset$Water.Type == 'River station', 'ground_v_surface'] <- 'surface'
-NOxN_by_stn <- merge(Noxn_obs_df, stn_subset, all.x=TRUE)
-NOxN_by_stn$Sample.Date <- as.Date(NOxN_by_stn$Sample.Date, format="%Y-%m-%d")
-
-# groundwater stations with NOxN measurements
-NOxN_groundwater <- NOxN_by_stn[NOxN_by_stn$ground_v_surface == 'groundwater', ]
-groundwater_freq_table <- as.data.frame(table(NOxN_groundwater$GEMS.Station.Number))
-groundwater_freq_table <- groundwater_freq_table[groundwater_freq_table$Freq > 0, ]
-colnames(groundwater_freq_table) <- c('GEMS.Station.Number', 'Num_obs_NOxN')
-stn_coords <- stn_subset[stn_subset$GEMS.Station.Number %in% groundwater_freq_table$GEMS.Station.Number,
-                         c("GEMS.Station.Number", "Country.Name", "Latitude", "Longitude")]
-groundwater_freq_table <- merge(groundwater_freq_table, stn_coords)
-write.csv(groundwater_freq_table, "F:/NCI_NDR/Data worldbank/station_data/groundwater_noxn_obs.csv",
-          row.names=FALSE)
-
-# restrict to surface stations
-surface_df_stn_list <- unique(NOxN_by_stn[NOxN_by_stn$ground_v_surface == 'surface',
-                                               'GEMS.Station.Number'])
-# restrict surface stations by date
-MIN_DATE = "1990-01-01"
-MAX_DATE = "1999-12-31"
-time_subset_stn_list <- unique(Noxn_obs_df[(Noxn_obs_df$Sample.Date >= MIN_DATE) &
-                                         (Noxn_obs_df$Sample.Date >= MAX_DATE), 'GEMS.Station.Number'])
-# restrict by stability of N fertilizer application rates
-delta_fert_by_stn <- merge(DELTA_FERT_DF, STN_OBJ_MATCH_DF)
-fert_app_subset_stn_list <- delta_fert_by_stn[delta_fert_by_stn$perc_change_mean_N_application_1980_2013 <= 155.4,
-                                          'GEMS.Station.Number']
-# intersection of subsets:
-  # - surface
-  # - time period
-  # - stable trend in fertilizer application rates
-subset1_stn_list <- intersect(surface_df_stn_list, time_subset_stn_list)
-subset_stn_list <- intersect(subset1_stn_list, fert_app_subset_stn_list)
-
-# stations with surface NOxN observations, all dates
-obs_subset_stn_df <- stn_subset[stn_subset$GEMS.Station.Number %in% noxn_surface_obs_station_list, ]
-write.csv(obs_subset_stn_df, SURFACE_NOXN_STATION_CSV,
-          row.names=FALSE)
-
-## raster processing
-# memory-intensive raster processing for NCI_NDR
-library(raster)
 
 # generate aligned raster of pixel area values, for calculating area of watersheds
 # aligned with DEM that was used to delineate the watersheds
@@ -129,9 +33,7 @@ success_subs <- basin_area_square_km_df[
 dim(success_subs)  # 305 stations have area within 50% of reported size
 write.csv(basin_area_square_km_df, "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/compare_basin_area_calc_v_reported.csv")
 
-# raster processing
-library(raster)
-# resample NDR outputs with block statistics
+# resample NDR outputs to 5min resolution with block statistics
 target_pixel_size <- 0.08333333333333332871  # 5 min
 n_export_10s_tif <- "F:/NCI_NDR/Data NDR/nutrient_deficit_10s_cur_compressed_md5_031d4bb444325835315a2cc825be3fd4.tif"
 n_export_5min_tif <- "F:/NCI_NDR/Data NDR/nutrient_deficit_5min_cur_compressed_md5_031d4bb444325835315a2cc825be3fd4.tif"
@@ -142,6 +44,40 @@ agg_ras <- aggregate(
   in_ras, fact=aggregate_factor, fun=sum, expand=TRUE, na.rm=TRUE)
 out_ras <- reclassify(agg_ras, cbind(NA, -9999))
 writeRaster(out_ras, filename=n_export_5min_tif, NAflag=-9999)
+
+# resample countries raster up to 5min resolution
+covar_key_csv <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/covariate_path_key.csv"
+covar_key_df <- read.csv(covar_key_csv, stringsAsFactors=FALSE)
+covar_key_df$native_resolution <- NA
+for (r in c(1:NROW(covar_key_df))) {
+  tryCatch({
+    temp_ras <- raster(covar_key_df[r, 'path_native_resolution'])
+    covar_key_df[r, 'native_resolution'] <- xres(temp_ras)
+  }, error=function(e){cat("ERROR :", conditionMessage(e), "\n")})
+}
+target_pixel_size <- 0.08333333333333332871  # 5 min
+in_ras <- raster(covar_key_df[11, 'path_native_resolution'])  # countries raster
+in_pixel_size = xres(in_ras)
+aggregate_factor = round(target_pixel_size / in_pixel_size)
+agg_ras <- aggregate(
+  in_ras, fact=aggregate_factor, fun=modal, expand=TRUE, na.rm=TRUE)
+out_ras <- reclassify(agg_ras, cbind(NA, -9999))
+filename <- covar_key_df[r, 'path_5min_resolution']
+writeRaster(out_ras, filename=filename, NAflag=-9999)
+
+# reclassify urban extent raster, calculate % urban at 5min resolution
+urban_ras <- raster(covar_key_df[9, 'path_native_resolution'])  # urban extent raster
+# Reclassify from {1=rural and 2=urban} to {0 = rural and 1 = urban}.
+rcl <- c(0.5, 1.5, 0, 1.6, 2.5, 1)
+rcl_mat <- matrix(rcl, ncol=3, byrow=TRUE)
+urban_rc <- reclassify(urban_ras, rcl_mat)
+# calculate % urban at 5 min resolution
+in_pixel_size = xres(urban_rc)
+aggregate_factor = round(target_pixel_size / in_pixel_size)
+agg_ras <- aggregate(
+  urban_rc, fact=aggregate_factor, fun=mean, expand=TRUE, na.rm=TRUE)
+filename <- "F:/NCI_NDR/Data urban extent GRUMP/perc_urban_5min.tif"
+writeRaster(agg_ras, filename=filename, NAflag=-9999, overwrite=TRUE)
 
 # aggregate across bands inside FLO1K NetCDF
 min_year <- 1990
@@ -177,7 +113,7 @@ div_fun <- function(x, y) { return (x/y) }
 min_avg_ratio <- overlay(min_subs_mean, subs_mean, fun=div_fun)
 writeRaster(min_avg_ratio, "F:/NCI_NDR/Data streamflow FLO1K/min_div_average_flow_1990_2015.tif")
 
-# ratio of mean flow to range (max - min)
+# ratio of mean flow to range (max - min), 'flashiness'
 flash_fun <- function(mean, min, max) { return (mean / (max - min)) }
 flash_ratio <- overlay(subs_mean, min_subs_mean, max_subs_mean, fun=flash_fun)
 writeRaster(flash_ratio, "F:/NCI_NDR/Data streamflow FLO1K/mean_div_range_1990_2015.tif")
@@ -269,12 +205,3 @@ san_avg_2000_2015_countryid <- san_avg_2000_2015_countryid[!(is.na(san_avg_2000_
 
 write.csv(san_avg_2000_2015_countryid, "F:/NCI_NDR/Data sanitation/no_sanitation_provision_avg_2000-2015.csv",
           row.names=FALSE)
-
-# merge covariate table with station characteristics
-covariate_csv <- "C:/Users/ginge/Desktop/combined_covariates.csv"
-covar_df <- read.csv(covariate_csv)
-match_df <- read.csv(OBJECTID_MATCH_CSV)
-covar_df <- merge(covar_df, match_df)
-stn_df <- read.csv(SURFACE_NOXN_STATION_CSV)
-stn_covar_df <- merge(covar_df, stn_df)
-
