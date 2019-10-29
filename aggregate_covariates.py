@@ -25,8 +25,8 @@ import taskgraph
 _STATION_SHP_PATH = "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_for_snapping_snapped.shp"
 
 # shapefile containing watersheds
-_BASIN_SHP_PATH = "F:/NCI_NDR/Data Hydrosheds/basin outlines/world_bas_15s_beta.shp"
-# "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_for_snapping_ContribArea.shp"
+_BASIN_SHP_PATH = "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_for_snapping_ContribArea.shp"
+# "F:/NCI_NDR/Data Hydrosheds/basin outlines/world_bas_15s_beta.shp"
 
 # shapefile containing watershed centroids
 _BASIN_CENTROID_PATH = "F:/NCI_NDR/Data Hydrosheds/basin outlines/centroid_world_bas_15s_beta.shp"
@@ -626,13 +626,20 @@ def collect_covariates_5min(
 
 def main():
     """Program entry point."""
-    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_5min_pixel'
+    # out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_5min_pixel'
+    # intermediate_dir_path = os.path.join(
+    #     out_dir, 'intermediate_df_dir')
+    # combined_covariate_table_path = os.path.join(
+    #     out_dir, 'combined_covariates.csv')
+    # collect_covariates_5min(
+    #     intermediate_dir_path, combined_covariate_table_path)
+
+    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/Rafa_watersheds_v3'
     intermediate_dir_path = os.path.join(
         out_dir, 'intermediate_df_dir')
     combined_covariate_table_path = os.path.join(
         out_dir, 'combined_covariates.csv')
-    collect_covariates_5min(
-        intermediate_dir_path, combined_covariate_table_path)
+    aggregate_covariates(intermediate_dir_path, combined_covariate_table_path)
 
 
 if __name__ == '__main__':
