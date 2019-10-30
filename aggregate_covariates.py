@@ -18,11 +18,15 @@ from osgeo import gdal
 from osgeo import osr
 from osgeo import ogr
 import pygeoprocessing
+import numpy
 import pandas
 import taskgraph
 
-# shapefile containing locations of stations with NOxN observations
-_STATION_SHP_PATH = "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_for_snapping_snapped.shp"
+# shapefile containing locations of snapped stations with NOxN observations
+_SNAPPED_STATION_SHP_PATH = "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_for_snapping_snapped.shp"
+
+# shapefile containing original station locations (not snapped)
+_ORIG_STATION_SHP_PATH = "F:/NCI_NDR/Data worldbank/station_data/WB_surface_stations_noxn_obs_objectid.shp"
 
 # shapefile containing watersheds
 _BASIN_SHP_PATH = "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_for_snapping_ContribArea.shp"
@@ -134,7 +138,7 @@ def aggregate_proportion_irrigation(area_df_path, save_as):
     irrigated_area_df.to_csv(save_as, index=False)
 
 
-def proportion_irrigation_at_point(save_as):
+def proportion_irrigation_at_point(point_shp_path, save_as):
     """Calculate proportion irrigated area for pixels intersecting points.
 
     From a raster containing pixel areas, get the area of the pixel
@@ -144,6 +148,8 @@ def proportion_irrigation_at_point(save_as):
     irrigated area by pixel area.
 
     Parameters:
+        point_shp_path (string): path to shapefile containing points where
+            values should be calculated
         save_as (string): path to save the proportion irrigated area as csv
 
     Returns:
@@ -154,14 +160,14 @@ def proportion_irrigation_at_point(save_as):
     # get area of pixel intersecting station features
     area_df_path = os.path.join(temp_dir, 'area_by_point.csv')
     raster_values_at_points(
-        _STATION_SHP_PATH, _COVARIATE_PATH_DICT['area'], 1, 'pixel_area',
+        point_shp_path, _COVARIATE_PATH_DICT['area'], 1, 'pixel_area',
         area_df_path)
 
     # get irrigated area in pixel intersecting station features
     irrigated_area_df_path = os.path.join(
         temp_dir, 'irrigated_area_by_point.csv')
     raster_values_at_points(
-        _STATION_SHP_PATH, _COVARIATE_PATH_DICT['irrigated_area'], 1,
+        point_shp_path, _COVARIATE_PATH_DICT['irrigated_area'], 1,
         'irrigated_area', irrigated_area_df_path)
 
     # calculate proportion of the pixel that is irrigated by dividing
@@ -329,6 +335,7 @@ def raster_values_at_points(
         None
 
     """
+    raster_nodata = pygeoprocessing.get_raster_info(raster_path)['nodata'][0]
     point_vector = ogr.Open(point_shp_path)
     point_layer = point_vector.GetLayer()
     point_defn = point_layer.GetLayerDefn()
@@ -377,8 +384,19 @@ def raster_values_at_points(
     raster = None
     band = None
 
+    # set nodata values to NA
     report_table = pandas.DataFrame(data=sampled_precip_data_list)
     report_table = report_table.transpose()
+    try:
+        report_table.loc[
+            numpy.isclose(report_table[raster_field_name], raster_nodata),
+            raster_field_name] = None
+    except TypeError:
+        report_table[raster_field_name] = pandas.to_numeric(
+            report_table[raster_field_name], errors='coerce')
+        report_table.loc[
+            numpy.isclose(report_table[raster_field_name], raster_nodata),
+            raster_field_name] = None
     report_table.to_csv(save_as, index=False)
 
 
@@ -410,10 +428,13 @@ def merge_data_frame_list(df_path_list, save_as):
     combined_df.to_csv(save_as, index=False)
 
 
-def aggregate_covariates(intermediate_dir_path, combined_covariate_table_path):
+def aggregate_covariates(
+        point_shp_path, intermediate_dir_path, combined_covariate_table_path):
     """Calculate covariate values for each surface monitoring station.
 
     Parameters:
+        point_shp_path (string): path to shapefile containing points that
+            correspond to basins where values are aggregated
         intermediate_dir_path (string): path to folder where persistent
             intermediate outputs should be written, namely a csv for each
             covariate
@@ -456,8 +477,8 @@ def aggregate_covariates(intermediate_dir_path, combined_covariate_table_path):
     df_path_list.append(climate_zone_df_path)
     if not os.path.exists(climate_zone_df_path):
         raster_values_at_points(
-            _BASIN_CENTROID_PATH, _COVARIATE_PATH_DICT['climate_zones'], 1,
-            'climate_zone', climate_zone_df_path)
+            point_shp_path, _COVARIATE_PATH_DICT['climate_zones'],
+            1, 'climate_zone', climate_zone_df_path)
 
     population_df_path = os.path.join(intermediate_dir_path, 'population.csv')
     df_path_list.append(population_df_path)
@@ -522,10 +543,12 @@ def aggregate_covariates(intermediate_dir_path, combined_covariate_table_path):
 
 
 def collect_covariates_5min(
-        intermediate_dir_path, combined_covariate_table_path):
+        point_shp_path, intermediate_dir_path, combined_covariate_table_path):
     """Extract covariate values at station points from 5min resolution rasters.
 
     Parameters:
+        point_shp_path (string): path to shapefile containing points features
+            where intersecting pixel values should be collected
         intermediate_dir_path (string): path to folder where persistent
             intermediate outputs should be written, namely a csv for each
             covariate
@@ -557,21 +580,21 @@ def collect_covariates_5min(
     df_path_list.append(n_export_path)
     if not os.path.exists(n_export_path):
         raster_values_at_points(
-            _STATION_SHP_PATH, _COVARIATE_PATH_DICT['n_export'], 1,
+            point_shp_path, _COVARIATE_PATH_DICT['n_export'], 1,
             'n_export', n_export_path)
 
     average_flow_path = os.path.join(intermediate_dir_path, 'average_flow.csv')
     df_path_list.append(average_flow_path)
     if not os.path.exists(average_flow_path):
         raster_values_at_points(
-            _STATION_SHP_PATH, _COVARIATE_PATH_DICT['average_flow'], 1,
+            point_shp_path, _COVARIATE_PATH_DICT['average_flow'], 1,
             'average_flow', average_flow_path)
 
     flash_flow_path = os.path.join(intermediate_dir_path, 'flash_flow.csv')
     df_path_list.append(flash_flow_path)
     if not os.path.exists(flash_flow_path):
         raster_values_at_points(
-            _STATION_SHP_PATH, _COVARIATE_PATH_DICT['flash_flow'], 1,
+            point_shp_path, _COVARIATE_PATH_DICT['flash_flow'], 1,
             'flash_flow', flash_flow_path)
 
     precip_variability_path = os.path.join(
@@ -579,34 +602,34 @@ def collect_covariates_5min(
     df_path_list.append(precip_variability_path)
     if not os.path.exists(precip_variability_path):
         raster_values_at_points(
-            _STATION_SHP_PATH, _COVARIATE_PATH_DICT['precip_variability'], 1,
+            point_shp_path, _COVARIATE_PATH_DICT['precip_variability'], 1,
             'precip_variability', precip_variability_path)
 
     climate_zone_path = os.path.join(intermediate_dir_path, 'climate_zone.csv')
     df_path_list.append(climate_zone_path)
     if not os.path.exists(climate_zone_path):
         raster_values_at_points(
-            _STATION_SHP_PATH, _COVARIATE_PATH_DICT['climate_zones'], 1,
+            point_shp_path, _COVARIATE_PATH_DICT['climate_zones'], 1,
             'climate_zone', climate_zone_path)
 
     irrigated_area_path = os.path.join(
         intermediate_dir_path, 'irrigated_area.csv')
     df_path_list.append(irrigated_area_path)
     if not os.path.exists(irrigated_area_path):
-        proportion_irrigation_at_point(irrigated_area_path)
+        proportion_irrigation_at_point(point_shp_path, irrigated_area_path)
 
     population_path = os.path.join(intermediate_dir_path, 'population.csv')
     df_path_list.append(population_path)
     if not os.path.exists(population_path):
         raster_values_at_points(
-            _STATION_SHP_PATH, _COVARIATE_PATH_DICT['population'], 1,
+            point_shp_path, _COVARIATE_PATH_DICT['population'], 1,
             'population', population_path)
 
     urban_extent_path = os.path.join(intermediate_dir_path, 'urban_extent.csv')
     df_path_list.append(urban_extent_path)
     if not os.path.exists(urban_extent_path):
         raster_values_at_points(
-            _STATION_SHP_PATH, _URBAN_5MIN_PATH, 1, 'proportion_urban',
+            point_shp_path, _URBAN_5MIN_PATH, 1, 'proportion_urban',
             urban_extent_path)
 
     sanitation_path = os.path.join(intermediate_dir_path, 'sanitation.csv')
@@ -615,7 +638,7 @@ def collect_covariates_5min(
         reclassify_countries_by_sanitation(
             _COUNTRIES_5MIN_PATH, temp_val_dict['sanitation'])
         raster_values_at_points(
-            _STATION_SHP_PATH, temp_val_dict['sanitation'], 1,
+            point_shp_path, temp_val_dict['sanitation'], 1,
             'percent_no_sanitation', sanitation_path)
 
     merge_data_frame_list(df_path_list, combined_covariate_table_path)
@@ -626,20 +649,32 @@ def collect_covariates_5min(
 
 def main():
     """Program entry point."""
-    # out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_5min_pixel'
-    # intermediate_dir_path = os.path.join(
-    #     out_dir, 'intermediate_df_dir')
-    # combined_covariate_table_path = os.path.join(
-    #     out_dir, 'combined_covariates.csv')
-    # collect_covariates_5min(
-    #     intermediate_dir_path, combined_covariate_table_path)
+    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_snapped_5min_pixel'
+    intermediate_dir_path = os.path.join(
+        out_dir, 'intermediate_df_dir')
+    combined_covariate_table_path = os.path.join(
+        out_dir, 'combined_covariates.csv')
+    collect_covariates_5min(
+        _SNAPPED_STATION_SHP_PATH, intermediate_dir_path,
+        combined_covariate_table_path)
+
+    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_5min_pixel'
+    intermediate_dir_path = os.path.join(
+        out_dir, 'intermediate_df_dir')
+    combined_covariate_table_path = os.path.join(
+        out_dir, 'combined_covariates.csv')
+    collect_covariates_5min(
+        _ORIG_STATION_SHP_PATH, intermediate_dir_path,
+        combined_covariate_table_path)
 
     out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/Rafa_watersheds_v3'
     intermediate_dir_path = os.path.join(
         out_dir, 'intermediate_df_dir')
     combined_covariate_table_path = os.path.join(
         out_dir, 'combined_covariates.csv')
-    aggregate_covariates(intermediate_dir_path, combined_covariate_table_path)
+    aggregate_covariates(
+        _SNAPPED_STATION_SHP_PATH, intermediate_dir_path,
+        combined_covariate_table_path)
 
 
 if __name__ == '__main__':

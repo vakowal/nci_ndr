@@ -23,8 +23,11 @@ MAX_DATE = "1999-12-31"
 # covariate table: basin extent
 BASIN_COVAR_CSV <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/Rafa_watersheds_v3/combined_covariates.csv"
 
-# covariate table: 5 min pixel extent
-PIXEL_COVAR_CSV <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_5min_pixel/combined_covariates.csv"
+# covariate table: 5 min pixel extent (snapped to rivers)
+PIXEL_SNAP_COVAR_CSV <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_snapped_5min_pixel/combined_covariates.csv"
+
+# covariate table: 5 min pixel extent (not snapped)
+PIXEL_ORIG_COVAR_CSV <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_5min_pixel/combined_covariates.csv"
 
 library(ggplot2)
 
@@ -107,6 +110,17 @@ obs_subset_stn_df <- stn_subset[stn_subset$GEMS.Station.Number %in% surface_df_s
 write.csv(obs_subset_stn_df, SURFACE_NOXN_STATION_CSV,
           row.names=FALSE)
 
+# get one observation per station, according to latest date of measurement inside selected time period
+noxn_obs_subset <- Noxn_obs_df[(Noxn_obs_df$Sample.Date >= MIN_DATE) &
+                                 (Noxn_obs_df$Sample.Date <= MAX_DATE), ]
+max_date_df <- aggregate(Sample.Date~GEMS.Station.Number, data=noxn_obs_subset, FUN=max)
+max_date_obs <- merge(noxn_obs_subset, max_date_df)
+max_date_avg <- aggregate(Value~GEMS.Station.Number+Sample.Date+Unit,
+                          data=max_date_obs, FUN=mean)
+noxn_obs_restr <- max_date_avg[, c(1, 4)]
+colnames(noxn_obs_restr)[2] <- 'noxn'
+
+# process covariate table
 # merge covariate table with station characteristics
 covar_df <- read.csv(BASIN_COVAR_CSV)
 match_df <- read.csv(OBJECTID_MATCH_CSV)
@@ -119,54 +133,34 @@ stn_covar_df$lake <- 0
 stn_covar_df[stn_covar_df$Water.Type == 'Lake station', 'lake'] <- 1
 stn_covar_df$river <- 0
 stn_covar_df[stn_covar_df$Water.Type == 'River station', 'river'] <- 1
-stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:12, 21)]
+stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:12, 21:22)]
 stn_covar_df <- stn_covar_df[, stn_covar_cols]
-# get one observation per station, according to latest date of measurement inside selected time period
-noxn_obs_subset <- Noxn_obs_df[(Noxn_obs_df$Sample.Date >= MIN_DATE) &
-                                 (Noxn_obs_df$Sample.Date <= MAX_DATE), ]
-max_date_df <- aggregate(Sample.Date~GEMS.Station.Number, data=noxn_obs_subset, FUN=max)
-max_date_obs <- merge(noxn_obs_subset, max_date_df)
-max_date_avg <- aggregate(Value~GEMS.Station.Number+Sample.Date+Unit,
-                          data=max_date_obs, FUN=mean)
-noxn_obs_restr <- max_date_avg[, c(1, 4)]
-colnames(noxn_obs_restr)[2] <- 'noxn'
+
 # merge covariates with NOxN observations
 combined_df <- merge(stn_covar_df, noxn_obs_restr, by="GEMS.Station.Number")  # , all=TRUE)
 
 # restrict by stability of N fert application
 combined_df_restr <- combined_df[combined_df$GEMS.Station.Number %in% subset_stn_list, ]
-combined_df_restr$climate_zone <- as.factor(combined_df_restr$climate_zone)
-combined_df_restr$lake <- as.factor(combined_df_restr$lake)
 
 ############ random forests model ############
+out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Rafa_watersheds_v3"
 library(lattice)
 library(mlbench)
 library(caret)
 
-covariate_vals <- combined_df_restr[, c(2:12)]
+covariate_vals <- combined_df_restr[, c(2:13)]
 noxn <- combined_df_restr$noxn
-
-# visualize bivariate relationships of noxn to all covariates
-theme1 <- trellis.par.get()
-theme1$plot.symbol$col = rgb(.2, .2, .2, .4)
-theme1$plot.symbol$pch = 16
-theme1$plot.line$col = rgb(1, 0, 0, .7)
-theme1$plot.line$lwd <- 2
-trellis.par.set(theme1)
-featurePlot(x = combined_df_restr[, c(2:12)], 
-            y = combined_df_restr$noxn, 
-            plot = "scatter",
-            type=c('p', 'smooth'),
-            span=0.5,
-            layout = c(5, 3))
 
 # check for near zero variance covariates
 nzv <- nearZeroVar(covariate_vals, saveMetrics=TRUE)
-nzv[nzv$nzv, ][1:10, ]
+nzv
 # check for high correlations between covariates
-covar_cor <- cor(covariate_vals)
+covar_cor <- cor(covariate_vals, na.rm=TRUE)
 summary(covar_cor[upper.tri(covar_cor)])
+write.csv(covar_cor, paste(out_dir, "covariate_correlations.csv", sep='/'))
 # center and scale continuous covariates
+covariate_vals$climate_zone <- as.factor(covariate_vals$climate_zone)
+covariate_vals$lake <- as.factor(covariate_vals$lake)
 preProcValues <- preProcess(covariate_vals, method=c("center", "scale"))
 covarTransformed <- predict(preProcValues, newdata=covariate_vals)
 # K-fold cross-validation
@@ -178,5 +172,117 @@ processed_data <- cbind(covariate_vals, noxn)
 ranger_rf <- train(noxn ~ ., data=processed_data,
                    method='ranger', trControl=fitControl,
                    na.action=na.omit, importance='impurity')
-ranger_rf
+sink(paste(out_dir, "ranger_rf_summary.txt", sep='/'))
+print(ranger_rf)
+sink()
 rf_var_imp <- varImp(ranger_rf)
+sink(paste(out_dir, "ranger_rf_var_importance.txt", sep='/'))
+print(rf_var_imp)
+sink()
+
+###### process covariate data: 5min pixel level ######
+# original pixel locations
+covar_df <- read.csv(PIXEL_ORIG_COVAR_CSV)
+match_df <- read.csv(OBJECTID_MATCH_CSV)
+covar_df <- merge(covar_df, match_df)
+stn_df <- read.csv(SURFACE_NOXN_STATION_CSV)
+stn_covar_df <- merge(covar_df, stn_df)
+
+# add dummy variables for each water body type
+stn_covar_df$lake <- 0
+stn_covar_df[stn_covar_df$Water.Type == 'Lake station', 'lake'] <- 1
+stn_covar_df$river <- 0
+stn_covar_df[stn_covar_df$Water.Type == 'River station', 'river'] <- 1
+stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:11, 20:21)]  # pixel covar cols (no basin area covar)
+stn_covar_df <- stn_covar_df[, stn_covar_cols]
+
+# merge covariates with NOxN observations
+combined_df <- merge(stn_covar_df, noxn_obs_restr, by="GEMS.Station.Number")  # , all=TRUE)
+
+# restrict by stability of N fert application
+combined_df_restr <- combined_df[combined_df$GEMS.Station.Number %in% subset_stn_list, ]
+
+# random forests model
+out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/WB_station_orig_5min_pixel"
+covariate_vals <- combined_df_restr[, c(2:12)]
+noxn <- combined_df_restr$noxn
+
+nzv <- nearZeroVar(covariate_vals, saveMetrics=TRUE)
+nzv
+# check for high correlations between covariates
+covar_cor <- cor(covariate_vals, use="na.or.complete")  # TODO correlations with missing values
+summary(covar_cor[upper.tri(covar_cor)])
+write.csv(covar_cor, paste(out_dir, "covariate_correlations.csv", sep='/'))
+# center and scale continuous covariates
+covariate_vals$climate_zone <- as.factor(covariate_vals$climate_zone)
+covariate_vals$lake <- as.factor(covariate_vals$lake)
+preProcValues <- preProcess(covariate_vals, method=c("center", "scale"))
+covarTransformed <- predict(preProcValues, newdata=covariate_vals)
+# K-fold cross-validation
+set.seed(491)
+fitControl <- trainControl(method='repeatedcv', number=10, repeats=10)
+# fit the random forests model
+processed_data <- cbind(covariate_vals, noxn)
+ranger_rf <- train(noxn ~ ., data=processed_data,
+                   method='ranger', trControl=fitControl,
+                   na.action=na.omit, importance='impurity')
+sink(paste(out_dir, "ranger_rf_summary.txt", sep='/'))
+print(ranger_rf)
+sink()
+rf_var_imp <- varImp(ranger_rf)
+sink(paste(out_dir, "ranger_rf_var_importance.txt", sep='/'))
+print(rf_var_imp)
+sink()
+
+############ snapped pixel locations ############
+covar_df <- read.csv(PIXEL_SNAP_COVAR_CSV)
+match_df <- read.csv(OBJECTID_MATCH_CSV)
+covar_df <- merge(covar_df, match_df)
+stn_df <- read.csv(SURFACE_NOXN_STATION_CSV)
+stn_covar_df <- merge(covar_df, stn_df)
+
+# add dummy variables for each water body type
+stn_covar_df$lake <- 0
+stn_covar_df[stn_covar_df$Water.Type == 'Lake station', 'lake'] <- 1
+stn_covar_df$river <- 0
+stn_covar_df[stn_covar_df$Water.Type == 'River station', 'river'] <- 1
+stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:11, 20:21)]  # pixel covar cols (no basin area covar)
+stn_covar_df <- stn_covar_df[, stn_covar_cols]
+
+# merge covariates with NOxN observations
+combined_df <- merge(stn_covar_df, noxn_obs_restr, by="GEMS.Station.Number")  # , all=TRUE)
+
+# restrict by stability of N fert application
+combined_df_restr <- combined_df[combined_df$GEMS.Station.Number %in% subset_stn_list, ]
+
+# random forests model
+out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/WB_station_snapped_5min_pixel"
+covariate_vals <- combined_df_restr[, c(2:12)]
+noxn <- combined_df_restr$noxn
+
+nzv <- nearZeroVar(covariate_vals, saveMetrics=TRUE)
+nzv
+# check for high correlations between covariates
+covar_cor <- cor(covariate_vals, use='pairwise.complete.obs')
+summary(covar_cor[upper.tri(covar_cor)])
+write.csv(covar_cor, paste(out_dir, "covariate_correlations.csv", sep='/'))
+# center and scale continuous covariates
+covariate_vals$climate_zone <- as.factor(covariate_vals$climate_zone)
+covariate_vals$lake <- as.factor(covariate_vals$lake)
+preProcValues <- preProcess(covariate_vals, method=c("center", "scale"))
+covarTransformed <- predict(preProcValues, newdata=covariate_vals)
+# K-fold cross-validation
+set.seed(491)
+fitControl <- trainControl(method='repeatedcv', number=10, repeats=10)
+# fit the random forests model
+processed_data <- cbind(covariate_vals, noxn)
+ranger_rf <- train(noxn ~ ., data=processed_data,
+                   method='ranger', trControl=fitControl,
+                   na.action=na.omit, importance='impurity')
+sink(paste(out_dir, "ranger_rf_summary.txt", sep='/'))
+print(ranger_rf)
+sink()
+rf_var_imp <- varImp(ranger_rf)
+sink(paste(out_dir, "ranger_rf_var_importance.txt", sep='/'))
+print(rf_var_imp)
+sink()
