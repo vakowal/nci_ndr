@@ -17,8 +17,8 @@ Noxn_obs_df <- read.csv(NOXN_OBSERVATIONS_CSV, stringsAsFactors=FALSE)
 Noxn_obs_df$Sample.Date <- as.Date(Noxn_obs_df$Sample.Date, format="%Y-%m-%d")
 
 # dates by which to restrict NOxN observations
-MIN_DATE = "1990-01-01"
-MAX_DATE = "1999-12-31"
+MIN_DATE = "2000-01-01"  # 1990-01-01"
+MAX_DATE = "2015-12-31"  # 1999-12-31"
 
 # covariate table: basin extent
 BASIN_COVAR_CSV <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/Rafa_watersheds_v3/combined_covariates.csv"
@@ -105,6 +105,14 @@ fert_app_subset_stn_list <- delta_fert_by_stn[delta_fert_by_stn$perc_change_mean
 subset1_stn_list <- intersect(surface_df_stn_list, time_subset_stn_list)
 subset_stn_list <- intersect(subset1_stn_list, fert_app_subset_stn_list)
 
+time_subset_stn_df <- STN_OBJ_MATCH_DF[STN_OBJ_MATCH_DF$GEMS.Station.Number %in% subset1_stn_list, ]
+time_subset_stn_df$date_subset <- 1
+write.csv(time_subset_stn_df, "F:/NCI_NDR/Data worldbank/station_data/station_subset_2000_2015.csv")  # 1990_1999.csv")
+
+fert_app_subset_stn_df <- STN_OBJ_MATCH_DF[STN_OBJ_MATCH_DF$GEMS.Station.Number %in% fert_app_subset_stn_list, ]
+fert_app_subset_stn_df$fert_app_subset <- 1
+write.csv(fert_app_subset_stn_df, "F:/NCI_NDR/Data worldbank/station_data/station_subset_fert_app_lte_155.4.csv")
+
 # stations with surface NOxN observations, all dates
 obs_subset_stn_df <- stn_subset[stn_subset$GEMS.Station.Number %in% surface_df_stn_list, ]
 write.csv(obs_subset_stn_df, SURFACE_NOXN_STATION_CSV,
@@ -140,10 +148,11 @@ stn_covar_df <- stn_covar_df[, stn_covar_cols]
 combined_df <- merge(stn_covar_df, noxn_obs_restr, by="GEMS.Station.Number")  # , all=TRUE)
 
 # restrict by stability of N fert application
-combined_df_restr <- combined_df[combined_df$GEMS.Station.Number %in% subset_stn_list, ]
+# combined_df_restr <- combined_df[combined_df$GEMS.Station.Number %in% subset_stn_list, ]
+combined_df_restr <- combined_df
 
 ############ random forests model ############
-out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Rafa_watersheds_v3"
+out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/time_subset_2000_2015/Rafa_watersheds_v3"
 library(lattice)
 library(mlbench)
 library(caret)
@@ -155,7 +164,7 @@ noxn <- combined_df_restr$noxn
 nzv <- nearZeroVar(covariate_vals, saveMetrics=TRUE)
 nzv
 # check for high correlations between covariates
-covar_cor <- cor(covariate_vals, na.rm=TRUE)
+covar_cor <- cor(covariate_vals)
 summary(covar_cor[upper.tri(covar_cor)])
 write.csv(covar_cor, paste(out_dir, "covariate_correlations.csv", sep='/'))
 # center and scale continuous covariates
@@ -166,7 +175,6 @@ covarTransformed <- predict(preProcValues, newdata=covariate_vals)
 # K-fold cross-validation
 set.seed(491)
 fitControl <- trainControl(method='repeatedcv', number=10, repeats=10)
-mtry <- floor(sqrt(dim(covariate_vals)[2]))  # number randomly selected predictors
 # fit the random forests model
 processed_data <- cbind(covariate_vals, noxn)
 ranger_rf <- train(noxn ~ ., data=processed_data,
@@ -200,10 +208,11 @@ stn_covar_df <- stn_covar_df[, stn_covar_cols]
 combined_df <- merge(stn_covar_df, noxn_obs_restr, by="GEMS.Station.Number")  # , all=TRUE)
 
 # restrict by stability of N fert application
-combined_df_restr <- combined_df[combined_df$GEMS.Station.Number %in% subset_stn_list, ]
+# combined_df_restr <- combined_df[combined_df$GEMS.Station.Number %in% subset_stn_list, ]
+combined_df_restr <- combined_df
 
 # random forests model
-out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/WB_station_orig_5min_pixel"
+out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/time_subset_2000_2015/WB_station_orig_5min_pixel"
 covariate_vals <- combined_df_restr[, c(2:12)]
 noxn <- combined_df_restr$noxn
 
@@ -256,7 +265,7 @@ combined_df <- merge(stn_covar_df, noxn_obs_restr, by="GEMS.Station.Number")  # 
 combined_df_restr <- combined_df[combined_df$GEMS.Station.Number %in% subset_stn_list, ]
 
 # random forests model
-out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/WB_station_snapped_5min_pixel"
+out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/N_application_subset_2000_2015/WB_station_snapped_5min_pixel"
 covariate_vals <- combined_df_restr[, c(2:12)]
 noxn <- combined_df_restr$noxn
 
