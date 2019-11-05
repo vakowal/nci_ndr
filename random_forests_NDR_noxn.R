@@ -99,14 +99,6 @@ fert_app_subset_stn_list <- delta_fert_by_stn[delta_fert_by_stn$perc_change_mean
 subset1_stn_list <- intersect(surface_df_stn_list, time_subset_stn_list)
 subset_stn_list <- intersect(subset1_stn_list, fert_app_subset_stn_list)
 
-time_subset_stn_df <- STN_OBJ_MATCH_DF[STN_OBJ_MATCH_DF$GEMS.Station.Number %in% subset1_stn_list, ]
-time_subset_stn_df$date_subset <- 1
-write.csv(time_subset_stn_df, "F:/NCI_NDR/Data worldbank/station_data/station_subset_2000_2015.csv")  # 1990_1999.csv")
-
-fert_app_subset_stn_df <- STN_OBJ_MATCH_DF[STN_OBJ_MATCH_DF$GEMS.Station.Number %in% fert_app_subset_stn_list, ]
-fert_app_subset_stn_df$fert_app_subset <- 1
-write.csv(fert_app_subset_stn_df, "F:/NCI_NDR/Data worldbank/station_data/station_subset_fert_app_lte_155.4.csv")
-
 # stations with surface NOxN observations, all dates
 obs_subset_stn_df <- stn_subset[stn_subset$GEMS.Station.Number %in% surface_df_stn_list, ]
 write.csv(obs_subset_stn_df, SURFACE_NOXN_STATION_CSV,
@@ -160,8 +152,9 @@ write.csv(covar_cor, paste(out_dir, "covariate_correlations.csv", sep='/'))
 # center and scale continuous covariates
 covariate_vals$climate_zone <- as.factor(covariate_vals$climate_zone)
 covariate_vals$lake <- as.factor(covariate_vals$lake)
-preProcValues <- preProcess(covariate_vals, method=c("center", "scale"))
-covarTransformed <- predict(preProcValues, newdata=covariate_vals)
+covariate_vals$river <- as.factor(covariate_vals$river)
+# preProcValues <- preProcess(covariate_vals, method=c("center", "scale"))
+# covarTransformed <- predict(preProcValues, newdata=covariate_vals)
 # K-fold cross-validation
 set.seed(491)
 fitControl <- trainControl(method='repeatedcv', number=10, repeats=10)
@@ -177,3 +170,19 @@ rf_var_imp <- varImp(ranger_rf)
 sink(paste(out_dir, "ranger_rf_var_importance.txt", sep='/'))
 print(rf_var_imp)
 sink()
+
+# "sensitivity analysis": perturb N export, predict from trained model
+n_export_orig <- covariate_vals$n_export
+covariate_vals_perturbed <- subset(covariate_vals, select=-c(n_export))
+perturb_list <- seq(0.2, 1.8, by=0.2)
+sum_df <- data.frame('N_export_%_perturb'=numeric(length(perturb_list)),
+                     'median_noxn'=numeric(length(perturb_list)))
+i <- 1
+for(p_perc in perturb_list) {
+  covariate_vals_perturbed$n_export <- n_export_orig * p_perc
+  new_predict <- predict(ranger_rf, data=covariate_vals_perturbed)
+  median_val <- median(new_predict)
+  sum_df[i, 'N_export_%_perturb'] = p_perc
+  sum_df[i, 'median_noxn'] <- median_val
+  i <- i + 1
+}
