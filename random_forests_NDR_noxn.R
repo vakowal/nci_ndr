@@ -140,8 +140,19 @@ library(lattice)
 library(mlbench)
 library(caret)
 out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/N_application_subset_2000_2015/WB_station_orig_5min_pixel"
+
+# generate training and test data subsets
 covariate_vals <- combined_df_restr[, c(2:12)]
+covariate_vals$climate_zone <- as.factor(covariate_vals$climate_zone)
+covariate_vals$lake <- as.factor(covariate_vals$lake)
+covariate_vals$river <- as.factor(covariate_vals$river)
 noxn <- combined_df_restr$noxn
+
+trainIndex <- createDataPartition(noxn, p=0.8, list=FALSE)
+covariate_train <- covariate_vals[trainIndex, ]
+covariate_test <- covariate_vals[-trainIndex, ]
+noxn_train <- noxn[trainIndex]
+noxn_test <- noxn[-trainIndex]
 
 nzv <- nearZeroVar(covariate_vals, saveMetrics=TRUE)
 nzv
@@ -150,17 +161,14 @@ covar_cor <- cor(covariate_vals, use="na.or.complete")  # TODO correlations with
 summary(covar_cor[upper.tri(covar_cor)])
 write.csv(covar_cor, paste(out_dir, "covariate_correlations.csv", sep='/'))
 # center and scale continuous covariates
-covariate_vals$climate_zone <- as.factor(covariate_vals$climate_zone)
-covariate_vals$lake <- as.factor(covariate_vals$lake)
-covariate_vals$river <- as.factor(covariate_vals$river)
 # preProcValues <- preProcess(covariate_vals, method=c("center", "scale"))
 # covarTransformed <- predict(preProcValues, newdata=covariate_vals)
 # K-fold cross-validation
 set.seed(491)
 fitControl <- trainControl(method='repeatedcv', number=10, repeats=10)
 # fit the random forests model
-processed_data <- cbind(covariate_vals, noxn)
-ranger_rf <- train(noxn ~ ., data=processed_data,
+processed_data <- cbind(covariate_train, noxn_train)
+ranger_rf <- train(noxn_train ~ ., data=processed_data,
                    method='ranger', trControl=fitControl,
                    na.action=na.omit, importance='impurity')
 sink(paste(out_dir, "ranger_rf_summary.txt", sep='/'))
@@ -171,16 +179,19 @@ sink(paste(out_dir, "ranger_rf_var_importance.txt", sep='/'))
 print(rf_var_imp)
 sink()
 
+new_predict <- predict(ranger_rf, newdata=covariate_test)
+
 # "sensitivity analysis": perturb N export, predict from trained model
-n_export_orig <- covariate_vals$n_export
-covariate_vals_perturbed <- subset(covariate_vals, select=-c(n_export))
+complete_cases <- complete.cases(covariate_vals)
+prediction_set <- covariate_vals[complete_cases, ]  # complete cases only
+n_export_orig <- prediction_set$n_export
 perturb_list <- seq(0.2, 1.8, by=0.2)
 sum_df <- data.frame('N_export_%_perturb'=numeric(length(perturb_list)),
                      'median_noxn'=numeric(length(perturb_list)))
 i <- 1
 for(p_perc in perturb_list) {
-  covariate_vals_perturbed$n_export <- n_export_orig * p_perc
-  new_predict <- predict(ranger_rf, data=covariate_vals_perturbed)
+  prediction_set$n_export <- n_export_orig * p_perc
+  new_predict <- predict(ranger_rf, newdata=prediction_set)
   median_val <- median(new_predict)
   sum_df[i, 'N_export_%_perturb'] = p_perc
   sum_df[i, 'median_noxn'] <- median_val
