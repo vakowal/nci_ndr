@@ -22,6 +22,9 @@ import numpy
 import pandas
 import taskgraph
 
+# shapefile containing groundwater monitoring stations with NOxN observations
+_GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data worldbank/station_data/WB_groundwater_stations_noxn_obs.shp"
+
 # shapefile containing locations of snapped stations with NOxN observations
 _SNAPPED_STATION_SHP_PATH = "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_for_snapping_snapped.shp"
 
@@ -307,6 +310,29 @@ def summarize_n_fert_in_watersheds():
         save_dir,
         "N_by_OBJECTID_WB_surface_stations_noxn_for_snapping_ContribArea.csv")
     combined_df.to_csv(save_as, index=False)
+
+
+def summarize_n_fert_at_points(point_shp_path, save_as):
+    """Summarize N fertilizer application rates at pixels over time."""
+    temp_dir = tempfile.mkdtemp()
+    N_raster_path_pattern = "F:/NCI_NDR/Data fertilizer Lu Tian/Lu-Tian_2017/Nfer_ASCII/nfery<yyyy>.asc"
+    year_sequence = range(1900, 2014)
+    df_list = []
+    for year in year_sequence:
+        fert_raster_path = N_raster_path_pattern.replace('<yyyy>', str(year))
+        intermediate_df_path = os.path.join(
+            temp_dir, 'fert_{}.csv'.format(year))
+        raster_values_at_points(
+            point_shp_path, fert_raster_path, 1, 'fertilizer',
+            intermediate_df_path)
+        points_df = pandas.read_csv(intermediate_df_path)
+        points_df['year'] = year
+        df_list.append(points_df)
+    combined_df = pandas.concat(df_list)
+    combined_df.to_csv(save_as, index=False)
+
+    # clean up temporary files
+    shutil.rmtree(temp_dir)
 
 
 def raster_values_at_points(
@@ -677,5 +703,15 @@ def main():
         combined_covariate_table_path)
 
 
+def n_fert_at_points():
+    """Generate tables summarizing n fertilizer trends at station points."""
+    n_fert_surface_stn_csv = "F:/NCI_NDR/Data fertilizer Lu Tian/N_by_OBJECTID_WB_surface_stations_noxn_obs_objectid.csv"
+    summarize_n_fert_at_points(_ORIG_STATION_SHP_PATH, n_fert_surface_stn_csv)
+    n_fert_groundwater_stn_csv = "F:/NCI_NDR/Data fertilizer Lu Tian/N_by_OBJECTID_WB_groundwater_stations_noxn_obs.csv"
+    summarize_n_fert_at_points(
+        _GROUNDWATER_STATION_SHP_PATH, n_fert_groundwater_stn_csv)
+
+
 if __name__ == '__main__':
-    main()
+    # main()
+    n_fert_at_points()

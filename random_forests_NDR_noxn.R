@@ -71,7 +71,7 @@ stn_subset[stn_subset$Water.Type == 'River station', 'ground_v_surface'] <- 'sur
 NOxN_by_stn <- merge(Noxn_obs_df, stn_subset, all.x=TRUE)
 NOxN_by_stn$Sample.Date <- as.Date(NOxN_by_stn$Sample.Date, format="%Y-%m-%d")
 
-# groundwater stations with NOxN measurements
+# get coordinates of groundwater stations with NOxN measurements
 NOxN_groundwater <- NOxN_by_stn[NOxN_by_stn$ground_v_surface == 'groundwater', ]
 groundwater_freq_table <- as.data.frame(table(NOxN_groundwater$GEMS.Station.Number))
 groundwater_freq_table <- groundwater_freq_table[groundwater_freq_table$Freq > 0, ]
@@ -81,6 +81,19 @@ stn_coords <- stn_subset[stn_subset$GEMS.Station.Number %in% groundwater_freq_ta
 groundwater_freq_table <- merge(groundwater_freq_table, stn_coords)
 write.csv(groundwater_freq_table, "F:/NCI_NDR/Data worldbank/station_data/groundwater_noxn_obs.csv",
           row.names=FALSE)
+
+# get noxn groundwater observations, restricted by date range, one observation per station
+NOxN_groundwater <- NOxN_by_stn[NOxN_by_stn$ground_v_surface == 'groundwater', ]
+groundwater_obs_subset <- NOxN_groundwater[(NOxN_groundwater$Sample.Date >= MIN_DATE) &
+                                 (NOxN_groundwater$Sample.Date <= MAX_DATE), ]
+# OR
+groundwater_obs_subset <- NOxN_groundwater
+max_date_df <- aggregate(Sample.Date~GEMS.Station.Number, data=groundwater_obs_subset, FUN=max)
+max_date_obs <- merge(groundwater_obs_subset, max_date_df)
+max_date_avg <- aggregate(Value~GEMS.Station.Number+Sample.Date+Unit,
+                          data=max_date_obs, FUN=mean)
+colnames(max_date_avg)[4] <- 'noxn'
+summary(max_date_avg$noxn)
 
 # restrict to surface stations
 surface_df_stn_list <- unique(NOxN_by_stn[NOxN_by_stn$ground_v_surface == 'surface',
@@ -186,8 +199,7 @@ complete_cases <- complete.cases(covariate_vals)
 prediction_set <- covariate_vals[complete_cases, ]  # complete cases only
 n_export_orig <- prediction_set$n_export
 perturb_list <- seq(0.2, 1.8, by=0.2)
-sum_df <- data.frame('N_export_%_perturb'=numeric(length(perturb_list)),
-                     'median_noxn'=numeric(length(perturb_list)))
+sum_df <- data.frame('median_noxn'=numeric(length(perturb_list)))
 i <- 1
 for(p_perc in perturb_list) {
   prediction_set$n_export <- n_export_orig * p_perc
