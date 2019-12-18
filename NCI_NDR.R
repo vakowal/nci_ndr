@@ -1,12 +1,15 @@
 # Spatial data processing for NCI-NDR project
 library(raster)
 
+# table giving percent change in mean fertilizer application rate between modeled period and prior period
+# surface
+FERT_PERC_CHANGE_CSV_SURF <- "F:/NCI_NDR/Data fertilizer Lu Tian/perc_change_fert_surf.csv"
+# ground
+FERT_PERC_CHANGE_CSV_GR <- "F:/NCI_NDR/Data fertilizer Lu Tian/perc_change_fert_gr.csv"
+  
 # match table: objectid+GEMS station number, all surface stations with noxn observations
 OBJECTID_MATCH_CSV <- "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_objectid_stnid_match_table.csv"
 STN_OBJ_MATCH_DF <- read.csv(OBJECTID_MATCH_CSV)
-
-# stations with change in N fertilizer application rates, 1980-2013
-DELTA_FERTILIZER_1980_2013_CSV <- "F:/NCI_NDR/Data fertilizer Lu Tian/perc_change_mean_N_application_1980_2013.csv"
 
 # generate aligned raster of pixel area values, for calculating area of watersheds
 # aligned with DEM that was used to delineate the watersheds
@@ -153,35 +156,67 @@ area_raster <- raster("F:/NCI_NDR/Data irrigation HYDE3.2/tot_irri_pixel_area_km
 inhabitants <- pop_mean * area_raster
 writeRaster(inhabitants, "F:/NCI_NDR/Data population HYDE3.2/inhabitants_avg_1990_2015.tif")
 
-# change in fertilizer application across years within watersheds
+# change in fertilizer application across years at pixels containing stations
 # from Lu and Tian 2017
-fert_by_basin_year_csv <- "F:/NCI_NDR/Data fertilizer Lu Tian/N_by_OBJECTID_WB_surface_stations_noxn_for_snapping_ContribArea.csv"
-fert_by_basin_df <- read.csv(fert_by_basin_year_csv)
-fert_by_basin_df$mean <- fert_by_basin_df$sum / fert_by_basin_df$count
-
+MIN_YEAR = 2000
+MAX_YEAR = 2015
 library(ggplot2)
-since_1980_subset <- fert_by_basin_df[fert_by_basin_df$year >= 1980, ]
-p <- ggplot(since_1980_subset, aes(x=year, y=mean, group=OBJECTID))
-p <- p + geom_line(aes(color=OBJECTID))
+n_fert_surface_stn_csv = "F:/NCI_NDR/Data fertilizer Lu Tian/N_by_OBJECTID_WB_surface_stations_noxn_obs_objectid_adj.csv"
+fert_surf_df <- read.csv(n_fert_surface_stn_csv)
+since_1965 <- fert_surf_df[fert_surf_df$year >= 1965, ]
+p <- ggplot(since_1965, aes(x=year, y=fertilizer, group=OBJECTID))
+p <- p + geom_line(aes(colour=OBJECTID))
 print(p)
-
-# change in mean application rate, 2013-1980
-start_end_subs <- fert_by_basin_df[(fert_by_basin_df$year==1980) |
-                                     (fert_by_basin_df$year==2013), colnames(fert_by_basin_df)[c(1, 7:8)]]
-delta_1980_2013_df <- reshape(start_end_subs, idvar='OBJECTID',
-                              timevar='year', v.names='mean', direction='wide')
-delta_1980_2013_df$percent_change <- ((delta_1980_2013_df$mean.2013 - delta_1980_2013_df$mean.1980)/
-                                        delta_1980_2013_df$mean.1980) * 100
-delta_1980_2013_df[!is.na(delta_1980_2013_df$mean.1980) & delta_1980_2013_df$mean.1980==0, ]$percent_change <- 100
-delta_1980_2013_df[!is.na(delta_1980_2013_df$delta) & delta_1980_2013_df$delta==0, ]$percent_change <- 100
-delta_1980_2013_df[is.na(delta_1980_2013_df$percent_change), ]$percent_change <- 0
-delta_df_to_save <- delta_1980_2013_df[, c("OBJECTID", "percent_change")]
-colnames(delta_df_to_save)[2] <- 'perc_change_mean_N_application_1980_2013'
-write.csv(delta_df_to_save, DELTA_FERTILIZER_1980_2013_CSV,
+# change, 1980-2013
+start_end_subs <- fert_surf_df[(fert_surf_df$year==1980) |
+                                 (fert_surf_df$year==2013), ]
+delta_df <- reshape(start_end_subs, idvar='OBJECTID', timevar='year', v.names='fertilizer',
+                    direction='wide')
+delta_df$percent_change <- ((delta_df$fertilizer.2013 - delta_df$fertilizer.1980) /
+                              delta_df$fertilizer.1980) * 100
+delta_df[(delta_df$fertilizer.1980==0) & (delta_df$fertilizer.2013==0), 'percent_change'] <- 0
+delta_df <- delta_df[, c('OBJECTID', 'percent_change')]
+write.csv(delta_df, "F:/NCI_NDR/Data fertilizer Lu Tian/percent_change_1980_2013_surf.csv",
           row.names=FALSE)
+  
+model_period_surf_df <- fert_surf_df[
+  (fert_surf_df$year >= MIN_YEAR) & (fert_surf_df$year <= MAX_YEAR), ]
+mean_model_period <- aggregate(fertilizer~OBJECTID, data=model_period_surf_df, FUN=mean)
+colnames(mean_model_period)[2] <- 'mean_fertilizer_model_period'
+prior_period <- fert_surf_df[
+  (fert_surf_df$year >= (MIN_YEAR - 5)) & (fert_surf_df$year <= MIN_YEAR), ]
+mean_prior_period <- aggregate(fertilizer~OBJECTID, data=prior_period, FUN=mean)
+colnames(mean_prior_period)[2] <- 'mean_fertilizer_prior_period'
+change_df <- merge(mean_model_period, mean_prior_period)
+change_df$perc_change_fert <- abs(
+  (change_df$mean_fertilizer_model_period - change_df$mean_fertilizer_prior_period) / 
+  change_df$mean_fertilizer_model_period) * 100
+change_df[(change_df$mean_fertilizer_model_period == 0) &
+            (change_df$mean_fertilizer_prior_period == 0), 'perc_change_fert'] <- 0
+hist(change_df$perc_change_fert, breaks=100)
+change_df <- change_df[, c('OBJECTID', 'perc_change_fert')]
+write.csv(change_df, FERT_PERC_CHANGE_CSV_SURF, row.names=FALSE)
 
-# generate a table of stations/basins that can be used to subset by delta N application and date of observation
-n_app_stn_df <- merge(delta_df_to_save, STN_OBJ_MATCH_DF)
+# fertilizer over time, groundwater stations
+n_fert_groundwater_stn_csv = "F:/NCI_NDR/Data fertilizer Lu Tian/N_by_OBJECTID_WB_groundwater_stations_noxn_obs.csv"
+fert_gr_df <- read.csv(n_fert_groundwater_stn_csv)
+model_period <- fert_gr_df[
+  (fert_gr_df$year >= 1995) & (fert_gr_df$year <= 2010), ]
+mean_model_period <- aggregate(fertilizer~OBJECTID, data=model_period, FUN=mean)
+colnames(mean_model_period)[2] <- 'mean_fertilizer_model_period'
+prior_period <- fert_gr_df[
+  (fert_gr_df$year >= 1965) & (fert_gr_df$year <= 1995), ]
+mean_prior_period <- aggregate(fertilizer~OBJECTID, data=prior_period, FUN=mean)
+colnames(mean_prior_period)[2] <- 'mean_fertilizer_prior_period'
+change_df <- merge(mean_model_period, mean_prior_period)
+change_df$perc_change_fert <- abs(
+  (change_df$mean_fertilizer_model_period - change_df$mean_fertilizer_prior_period) / 
+  change_df$mean_fertilizer_model_period) * 100
+change_df[(change_df$mean_fertilizer_model_period == 0) &
+            (change_df$mean_fertilizer_prior_period == 0), 'perc_change_fert'] <- 0
+hist(change_df$perc_change_fert, breaks=100)
+change_df <- change_df[, c('OBJECTID', 'perc_change_fert')]
+write.csv(change_df, FERT_PERC_CHANGE_CSV_GR, row.names=FALSE)
 
 # summarize sanitation data
 sanitation_csv <- "F:/NCI_NDR/Data sanitation/sanitation_data_raw.csv"

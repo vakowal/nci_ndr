@@ -602,12 +602,12 @@ def collect_covariates_5min(
     if not os.path.exists(intermediate_dir_path):
         os.makedirs(intermediate_dir_path)
 
-    n_export_path = os.path.join(intermediate_dir_path, 'n_export.csv')
-    df_path_list.append(n_export_path)
-    if not os.path.exists(n_export_path):
-        raster_values_at_points(
-            point_shp_path, _COVARIATE_PATH_DICT['n_export'], 1,
-            'n_export', n_export_path)
+    # n_export_path = os.path.join(intermediate_dir_path, 'n_export.csv')
+    # df_path_list.append(n_export_path)
+    # if not os.path.exists(n_export_path):
+    #     raster_values_at_points(
+    #         point_shp_path, _COVARIATE_PATH_DICT['n_export'], 1,
+    #         'n_export', n_export_path)
 
     average_flow_path = os.path.join(intermediate_dir_path, 'average_flow.csv')
     df_path_list.append(average_flow_path)
@@ -673,8 +673,19 @@ def collect_covariates_5min(
     shutil.rmtree(temp_dir)
 
 
-def main():
-    """Program entry point."""
+def n_fert_at_points():
+    """Generate tables summarizing n fertilizer trends at station points."""
+    n_fert_surface_stn_csv = "F:/NCI_NDR/Data fertilizer Lu Tian/N_by_OBJECTID_WB_surface_stations_noxn_obs_objectid_adj.csv"
+    # use surface station locations adjusted to intersect with Lu Tian data
+    pt_shp_path = "F:/NCI_NDR/Data worldbank/station_data/WB_surface_stations_noxn_obs_objectid_shift_to_lu_tian.shp"
+    summarize_n_fert_at_points(pt_shp_path, n_fert_surface_stn_csv)
+    n_fert_groundwater_stn_csv = "F:/NCI_NDR/Data fertilizer Lu Tian/N_by_OBJECTID_WB_groundwater_stations_noxn_obs.csv"
+    # summarize_n_fert_at_points(
+        # _GROUNDWATER_STATION_SHP_PATH, n_fert_groundwater_stn_csv)
+
+
+def collect_surface_covariates_points_snapped():
+    """Aggregate covariates from the pixel containing the snapped station."""
     out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_snapped_5min_pixel'
     intermediate_dir_path = os.path.join(
         out_dir, 'intermediate_df_dir')
@@ -684,6 +695,9 @@ def main():
         _SNAPPED_STATION_SHP_PATH, intermediate_dir_path,
         combined_covariate_table_path)
 
+
+def collect_surface_covariates_points_orig():
+    """Aggregate covariates from the pixel containing the original station."""
     out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_5min_pixel'
     intermediate_dir_path = os.path.join(
         out_dir, 'intermediate_df_dir')
@@ -693,6 +707,9 @@ def main():
         _ORIG_STATION_SHP_PATH, intermediate_dir_path,
         combined_covariate_table_path)
 
+
+def collect_surface_covariates_basin():
+    """Aggregate covariates inside the basin delineated for each station."""
     out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/Rafa_watersheds_v3'
     intermediate_dir_path = os.path.join(
         out_dir, 'intermediate_df_dir')
@@ -703,15 +720,73 @@ def main():
         combined_covariate_table_path)
 
 
-def n_fert_at_points():
-    """Generate tables summarizing n fertilizer trends at station points."""
-    n_fert_surface_stn_csv = "F:/NCI_NDR/Data fertilizer Lu Tian/N_by_OBJECTID_WB_surface_stations_noxn_obs_objectid.csv"
-    summarize_n_fert_at_points(_ORIG_STATION_SHP_PATH, n_fert_surface_stn_csv)
-    n_fert_groundwater_stn_csv = "F:/NCI_NDR/Data fertilizer Lu Tian/N_by_OBJECTID_WB_groundwater_stations_noxn_obs.csv"
-    summarize_n_fert_at_points(
-        _GROUNDWATER_STATION_SHP_PATH, n_fert_groundwater_stn_csv)
+def collect_groundwater_covariates_orig():
+    """Aggregate covariates from piixel containing groundwater stations."""
+    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_groundwater_station_orig_5min_pixel'
+    intermediate_dir_path = os.path.join(
+        out_dir, 'intermediate_df_dir')
+    combined_covariate_table_path = os.path.join(
+        out_dir, 'combined_covariates.csv')
+    collect_covariates_5min(
+        _GROUNDWATER_STATION_SHP_PATH, intermediate_dir_path,
+        combined_covariate_table_path)
+
+
+def add_updated_ndr():
+    """Add updated NDR results to previously collected covariates.
+
+    Rich updated the NDR model run and generated a shapefile of N export around
+    groundwater and surface station locations.  I exported this shapefile to
+    csv. Join this csv to previously collected covariates for surface and
+    groundwater. Replace the previously collected covariate table with a new
+    table that includes the updated NDR outputs.
+
+    """
+    # surface stations
+    surface_n_export_path = "F:/NCI_NDR/Data NDR/updated_runs/WB_surface_stations_noxn_obs_objectid_n_export.csv"
+    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_5min_pixel'
+    surface_covariate_df_path = os.path.join(
+        out_dir, 'combined_covariates.csv')
+    n_export = pandas.read_csv(surface_n_export_path)
+    # select and rename columns for consistency with previous aggregation
+    n_export_subs = n_export[['OBJECTID', 'N_export']]
+    n_export_subs.rename(columns={"N_export": "n_export"}, inplace=True)
+    # remove invalid values
+    n_export_subs = n_export_subs.loc[n_export_subs['n_export'] > 0]
+    existing_df = pandas.read_csv(surface_covariate_df_path)
+    if 'n_export' in existing_df.columns.values:
+        existing_df.drop(['n_export'], axis=1, inplace=True)
+    updated_df = existing_df.merge(
+        n_export_subs, how='left', on='OBJECTID', suffixes=(False, False))
+    os.remove(surface_covariate_df_path)
+    updated_df.to_csv(surface_covariate_df_path, index=False)
+
+    # groundwater stations
+    ground_n_export_path = "F:/NCI_NDR/Data NDR/updated_runs/WB_groundwater_stations_noxn_obs_n_export.csv"
+    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_groundwater_station_orig_5min_pixel'
+    ground_covariate_df_path = os.path.join(
+        out_dir, 'combined_covariates.csv')
+    n_export = pandas.read_csv(ground_n_export_path)
+    # select and rename columns for consistency with previous aggregation
+    n_export_subs = n_export[['OBJECTID', 'N_export']]
+    n_export_subs.rename(columns={"N_export": "n_export"}, inplace=True)
+    # remove invalid values
+    n_export_subs = n_export_subs.loc[n_export_subs['n_export'] > 0]
+    existing_df = pandas.read_csv(ground_covariate_df_path)
+    if 'n_export' in existing_df.columns.values:
+        existing_df.drop(['n_export'], axis=1, inplace=True)
+    updated_df = existing_df.merge(
+        n_export_subs, how='left', on='OBJECTID', suffixes=(False, False))
+    os.remove(ground_covariate_df_path)
+    updated_df.to_csv(ground_covariate_df_path, index=False)
+
+
+def main():
+    """Program entry point."""
+    # collect_groundwater_covariates_orig()
+    # add_updated_ndr()
+    n_fert_at_points()
 
 
 if __name__ == '__main__':
-    # main()
-    n_fert_at_points()
+    main()
