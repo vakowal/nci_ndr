@@ -45,8 +45,10 @@ def random_forests_NDR_noxn(noxn_predictor_df_path):
     predictor_test_arr = predictor_arr[~train_mask]
 
     # train random forests model
-    # Instantiate model with 1000 decision trees
-    rf_model = RandomForestRegressor(n_estimators=1000, random_state=42)
+    # Instantiate model, using same parameters used by caret in R
+    rf_model = RandomForestRegressor(
+        random_state=42, n_estimators=500, criterion="mse", max_features=10,
+        min_samples_leaf=5)
 
     # train the model on training data
     rf_model.fit(predictor_train_arr, noxn_train_arr)
