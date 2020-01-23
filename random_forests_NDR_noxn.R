@@ -1,4 +1,5 @@
 # random forests model: NOxN ~ NDR for World Bank
+library(caret)
 
 # match table: objectid+GEMS station number, all surface stations with noxn observations
 OBJECTID_MATCH_CSV_SURF <- "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_objectid_stnid_match_table.csv"
@@ -7,8 +8,8 @@ STN_OBJ_MATCH_DF_SURF <- read.csv(OBJECTID_MATCH_CSV_SURF)
 # surface stations with noxn observations
 SURFACE_NOXN_STATION_CSV <- "F:/NCI_NDR/Data worldbank/station_data/WB_surface_stations_noxn_obs.csv"
 
-# stations with change in N fertilizer application rates, modeling period (1995-2010) vs 5 years prior (1990-1995)
-DELTA_FERT_CSV_SURF <- "F:/NCI_NDR/Data fertilizer Lu Tian/perc_change_fert_surf.csv"
+# stations with change in N fertilizer application rates, 1980 to 2013
+DELTA_FERT_CSV_SURF <- "F:/NCI_NDR/Data fertilizer Lu Tian/percent_change_1980_2013_surf.csv"
 DELTA_FERT_DF_SURF <- read.csv(DELTA_FERT_CSV_SURF)
 
 # match table: objectid+GEMS station number, groundwater stations with noxn observations
@@ -56,11 +57,6 @@ surface_df_stn_list <- unique(NOXN_BY_STN[NOXN_BY_STN$ground_v_surface == 'surfa
 # restrict by stability of N fertilizer application rates
 delta_fert_by_stn <- merge(DELTA_FERT_DF_SURF, STN_OBJ_MATCH_DF_SURF)
 fert_app_subset_stn_list <- delta_fert_by_stn[
-  delta_fert_by_stn$perc_change_fert <= 50, 'GEMS.Station.Number']
-# test another way of defining stability of fertilizer application rates
-delta_df <- read.csv("F:/NCI_NDR/Data fertilizer Lu Tian/percent_change_1980_2013_surf.csv")
-delta_fert_by_stn <- merge(delta_df, STN_OBJ_MATCH_DF_SURF)
-fert_app_subset_stn_list <- delta_fert_by_stn[
   delta_fert_by_stn$percent_change <= 171.7, 'GEMS.Station.Number']
 
 # aggregate noxn observations: one mean observation per station per year, inside
@@ -96,20 +92,29 @@ combined_df <- merge(stn_covar_df, noxn_obs_restr, by="GEMS.Station.Number")  # 
 # restrict by stability of N fert application
 combined_df_restr <- combined_df[combined_df$GEMS.Station.Number %in% fert_app_subset_stn_list, ]
 
+# drop climate zone as predictor
+rf_covar_df <- combined_df_restr[, c(2:4, 6:13)]
+
+# save filtered data frame for analysis in R
+trainIndex <- createDataPartition(rf_covar_df$noxn, p=0.8, 
+                                  times=1)
+rf_covar_df$train = 0
+for (r in 1:NROW(rf_covar_df)) {
+  if (r %in% trainIndex$Resample1) {
+    rf_covar_df[r, 'train'] = 1
+  }
+}
+write.csv(rf_covar_df, "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_surf.csv", row.names=FALSE)
+
 # random forests model, surface stations
-library(caret)
 out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR/surface/N_application_subset_2000_2015/WB_station_orig_5min_pixel"
 
 # K-fold cross-validation
 set.seed(491)
 fitControl <- trainControl(method='repeatedcv', number=10, repeats=10)
-
-rf_covar_df <- combined_df_restr[, c(2:13)]
+rf_covar_df <- subset(rf_covar_df, select=-c(train))
 rf_covar_df$lake <- as.factor(rf_covar_df$lake)
 rf_covar_df$river <- as.factor(rf_covar_df$river)
-# exclude climate zones as a predictor
-rf_covar_df <- subset(rf_covar_df, select=-c(climate_zone))
-# rf_covar_df$climate_zone <- as.factor(rf_covar_df$climate_zone)
 
 # fit the random forests model
 ranger_rf <- train(noxn ~ ., data=rf_covar_df,
@@ -122,22 +127,6 @@ rf_var_imp <- varImp(ranger_rf)
 sink(paste(out_dir, "ranger_rf_var_importance.txt", sep='/'))
 print(rf_var_imp)
 sink()
-
-# "sensitivity analysis": perturb N export, predict from trained model
-complete_cases <- complete.cases(covariate_vals)
-prediction_set <- covariate_vals[complete_cases, ]  # complete cases only
-n_export_orig <- prediction_set$n_export
-perturb_list <- seq(0.2, 1.8, by=0.2)
-sum_df <- data.frame('median_noxn'=numeric(length(perturb_list)))
-i <- 1
-for(p_perc in perturb_list) {
-  prediction_set$n_export <- n_export_orig * p_perc
-  new_predict <- predict(ranger_rf, newdata=prediction_set)
-  median_val <- median(new_predict)
-  sum_df[i, 'N_export_%_perturb'] = p_perc
-  sum_df[i, 'median_noxn'] <- median_val
-  i <- i + 1
-}
 
 # Bar chart: variable importance (for an example model)
 var_imp_csv <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/N_application_subset_2000_2015/WB_station_orig_5min_pixel/no_climate_zones/ranger_rf_var_importance.csv"
