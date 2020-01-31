@@ -5,7 +5,7 @@ import argparse
 import numpy
 import pandas
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, KFold
 
 
 def random_forests_NDR_noxn(noxn_predictor_df_path):
@@ -26,8 +26,6 @@ def random_forests_NDR_noxn(noxn_predictor_df_path):
     combined_df = pandas.read_csv(noxn_predictor_df_path)
     # drop rows containing missing data
     combined_df.dropna(inplace=True)
-
-    train_mask = numpy.array(combined_df.train) == 1
     combined_df.drop('train', axis=1, inplace=True)
 
     # generate dummy variables for factors
@@ -57,27 +55,17 @@ def random_forests_NDR_noxn(noxn_predictor_df_path):
     print('OOB Score: {}'.format(rf_model.oob_score_))
 
     # 10-fold cross-validation
-    # RAFA this is what is currently producing nonsensical results
-    rf_cv_scores = cross_val_score(rf_model, predictor_arr, noxn_arr, cv=10)
+    rf_cv_scores = cross_val_score(
+        rf_model, predictor_arr, noxn_arr,
+        cv=KFold(10, shuffle=True, random_state=42))
+    mean_cv_score = numpy.asarray(rf_cv_scores).mean()
+    print('mean cross validation R^2: {}'.format(mean_cv_score))
 
     # get variable importance
     var_importances = rf_model.feature_importances_
     var_imp_df = pandas.DataFrame(
         {'variable': predictor_names, 'importance': var_importances})
     print(var_imp_df)
-
-    # separate into training and test subsets
-    noxn_train_arr = noxn_arr[train_mask]
-    noxn_test_arr = noxn_arr[~train_mask]
-    predictor_train_arr = predictor_arr[train_mask]
-    predictor_test_arr = predictor_arr[~train_mask]
-
-    rf_model.fit(predictor_train_arr, noxn_train_arr)
-    test_r_sq = rf_model.score(predictor_test_arr, noxn_test_arr)
-
-    # if needed for comparison with caret results: get predicted noxn for test
-    # subset from trained model
-    noxn_pred = rf_model.predict(predictor_test_arr)
 
 
 if __name__ == '__main__':
