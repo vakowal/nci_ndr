@@ -50,6 +50,47 @@ stn_subset[stn_subset$Water.Type == 'River station', 'ground_v_surface'] <- 'sur
 NOXN_BY_STN <- merge(NOXN_OBS, stn_subset, all.x=TRUE)
 NOXN_BY_STN$Sample.Date <- as.Date(NOXN_BY_STN$Sample.Date, format="%Y-%m-%d")
 
+# compare mean nitrate in surface vs groundwater, by country, within time period 2000-2015
+noxn_time_subset <- NOXN_BY_STN[(NOXN_BY_STN$Sample.Date >= MIN_DATE) &
+                                  (NOXN_BY_STN$Sample.Date <= MAX_DATE), 
+                                c("Value", "Country.Name", "ground_v_surface")]
+mean_by_country_source <- aggregate(Value~Country.Name+ground_v_surface,
+                                    data=noxn_time_subset, FUN=mean)
+colnames(mean_by_country_source)[3] <- "noxn_mean"
+sd_by_country_source <- aggregate(Value~Country.Name+ground_v_surface,
+                                  data=noxn_time_subset, FUN=sd)
+colnames(sd_by_country_source)[3] <- "noxn_sd"
+median_by_country_source <- aggregate(Value~Country.Name+ground_v_surface,
+                                      data=noxn_time_subset, FUN=median)
+colnames(median_by_country_source)[3] <- "noxn_median"
+summary_df <- merge(mean_by_country_source, sd_by_country_source, all=TRUE)
+summary_df <- merge(summary_df, median_by_country_source, all=TRUE)
+summary_df_reshape <- reshape(summary_df, idvar='Country.Name', timevar='ground_v_surface',
+                              direction='wide')
+summary_df_reshape$diff_mean <- summary_df_reshape$noxn_mean.surface - summary_df_reshape$noxn_mean.groundwater
+summary_df_reshape$diff_median <- summary_df_reshape$noxn_median.surface - summary_df_reshape$noxn_median.groundwater
+summary_df_reshape <- summary_df_reshape[
+  c('Country.Name', 'diff_median', 'diff_mean', 'noxn_median.surface', 'noxn_median.groundwater',
+    'noxn_mean.surface', 'noxn_mean.groundwater', 'noxn_sd.surface', 'noxn_sd.groundwater')
+]
+outdir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/ground_v_surface_observed_summary"
+write.csv(summary_df_reshape, paste(outdir, "noxn_mean_median_by_country_ground_v_surface_2000-2015.csv", sep="/"),
+          row.names=FALSE)
+
+# another way: ANOVA
+NOXN_BY_STN$year <- as.factor(format(NOXN_BY_STN$Sample.Date, format="%Y"))
+NOXN_BY_STN$Country.Name <- as.factor(NOXN_BY_STN$Country.Name)
+NOXN_BY_STN$ground_v_surface <- as.factor(NOXN_BY_STN$ground_v_surface)
+model <- lm(Value~Country.Name+year+ground_v_surface, data=NOXN_BY_STN)
+sink(paste(outdir, "noxn_anova_summary.txt", sep='/'))
+summary(model)
+sink()
+
+# save the raw data in the relevant subset
+subset_to_save <- NOXN_BY_STN[, c('Sample.Date', 'Value', 'Country.Name', 'ground_v_surface')]
+colnames(subset_to_save)[2] <- 'noxn_mg/L'
+write.csv(subset_to_save, paste(outdir, 'noxn_observations_full.csv', sep='/'), row.names=FALSE)
+
 # surface stations only: define filtered list of stations
 # restrict to surface stations
 surface_df_stn_list <- unique(NOXN_BY_STN[NOXN_BY_STN$ground_v_surface == 'surface',
@@ -83,7 +124,7 @@ stn_covar_df$lake <- 0
 stn_covar_df[stn_covar_df$Water.Type == 'Lake station', 'lake'] <- 1
 stn_covar_df$river <- 0
 stn_covar_df[stn_covar_df$Water.Type == 'River station', 'river'] <- 1
-stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:11, 20:21)]  # pixel covar cols (no basin area covar)
+stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:5, 7:11, 20:21)]  # pixel-level covariates
 stn_covar_df <- stn_covar_df[, stn_covar_cols]
 
 # merge covariates with NOxN observations
@@ -91,19 +132,8 @@ combined_df <- merge(stn_covar_df, noxn_obs_restr, by="GEMS.Station.Number")  # 
 
 # restrict by stability of N fert application
 combined_df_restr <- combined_df[combined_df$GEMS.Station.Number %in% fert_app_subset_stn_list, ]
-
-# drop climate zone as predictor
-rf_covar_df <- combined_df_restr[, c(2:4, 6:13)]
-
-# save filtered data frame for analysis in R
-trainIndex <- createDataPartition(rf_covar_df$noxn, p=0.8, 
-                                  times=1)
-rf_covar_df$train = 0
-for (r in 1:NROW(rf_covar_df)) {
-  if (r %in% trainIndex$Resample1) {
-    rf_covar_df[r, 'train'] = 1
-  }
-}
+rf_covar_df <- combined_df_restr[, 2:12]
+# save filtered data frame for analysis in Python
 write.csv(rf_covar_df, "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_surf.csv", row.names=FALSE)
 
 # random forests model, surface stations
@@ -165,8 +195,8 @@ gr_stn <- NOXN_BY_STN[NOXN_BY_STN$ground_v_surface == 'groundwater', ]
 gr_stn$year <- format(gr_stn$Sample.Date, format="%Y")
 mean_noxn_by_year <- aggregate(Value~GEMS.Station.Number+year+Unit,
                                data=gr_stn, FUN=mean)
-noxn_obs_restr <- mean_noxn_by_year[, c(1, 2, 4)]
-colnames(noxn_obs_restr)[3] <- 'noxn'
+noxn_obs_restr <- mean_noxn_by_year[, c(1, 4)]
+colnames(noxn_obs_restr)[2] <- 'noxn'
 
 # process covariate data
 covar_df <- read.csv(PIXEL_ORIG_COVAR_GR_CSV)
@@ -175,33 +205,32 @@ match_df <- read.csv(OBJECTID_MATCH_CSV_GR)
 covar_df <- merge(covar_df, match_df)
 STN_DF <- read.csv(GR_NOXN_STATION_CSV)
 stn_covar_df <- merge(covar_df, STN_DF, by.x='GEMS.Stati', by.y='GEMS.Station.Number')
-stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:11)]  # pixel covar cols for groundwater (no basin area covar)
+stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:5, 8:15)]  # pixel covar cols for groundwater (no basin area covar)
 stn_covar_df <- stn_covar_df[, stn_covar_cols]
 
 # merge groundwater covariates with noxn obs
 combined_df <- merge(stn_covar_df, noxn_obs_restr, by.x='GEMS.Stati', by.y='GEMS.Station.Number')
 
+# write out groundwater raw data for random forests analysis in Python
+combined_df_restr <- combined_df[, 2:13]
+write.csv(combined_df_restr, "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_gr.csv", row.names=FALSE)
+
 # restrict by time period and n fert application
-combined_df_restr <- combined_df[
-  combined_df$GEMS.Stati %in% subset_stn_list, ]
-# OR
-# restrict by n fert application
-combined_df_restr <- combined_df[
-  combined_df$GEMS.Stati %in% fert_app_subset_stn_list, ]
-# OR
-# restrict by time period
-combined_df_restr <- combined_df[
-  combined_df$GEMS.Stati %in% subset_stn_list_time, ]
-# OR
-# use all stations
-combined_df_restr <- combined_df
+# combined_df_restr <- combined_df[
+#   combined_df$GEMS.Stati %in% subset_stn_list, ]
+# # OR
+# # restrict by n fert application
+# combined_df_restr <- combined_df[
+#   combined_df$GEMS.Stati %in% fert_app_subset_stn_list, ]
+# # OR
+# # restrict by time period
+# combined_df_restr <- combined_df[
+#   combined_df$GEMS.Stati %in% subset_stn_list_time, ]
 
 # random forests model
 library(caret)
 out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR/ground/all_stations/WB_station_orig_5min_pixel"
-rf_covar_df <- combined_df_restr[, c(2:10, 12)]
-# exclude climate zones as a predictor
-rf_covar_df <- subset(rf_covar_df, select=-c(climate_zone))
+rf_covar_df <- combined_df_restr
 
 # K-fold cross-validation
 set.seed(491)
