@@ -54,6 +54,10 @@ _COVARIATE_PATH_DICT = {
     'urban_extent_rc': "F:/NCI_NDR/Data urban extent GRUMP/glurextents_rc.tif",
     'sanitation_table': "F:/NCI_NDR/Data sanitation/no_sanitation_provision_avg_2000-2015.csv",
     'countries_raster': "F:/NCI_NDR/Data world borders/TM_WORLD_BORDERS-03_countryid.tif",
+    'depth_to_groundwater': "F:/NCI_NDR/Data HydroATLAS/gwt_cm_sav_level12.tif",
+    'clay_percent': "F:/NCI_NDR/Data HydroATLAS/cly_pc_sav_level12.tif",
+    'silt_percent': "F:/NCI_NDR/Data HydroATLAS/slt_pc_sav_level12.tif",
+    'sand_percent': "F:/NCI_NDR/Data HydroATLAS/snd_pc_sav_level12.tif",
 }
 
 # path to % urban covariate at 5 min resolution
@@ -569,7 +573,8 @@ def aggregate_covariates(
 
 
 def collect_covariates_5min(
-        point_shp_path, intermediate_dir_path, combined_covariate_table_path):
+        point_shp_path, intermediate_dir_path, combined_covariate_table_path,
+        groundwater=None):
     """Extract covariate values at station points from 5min resolution rasters.
 
     Parameters:
@@ -581,6 +586,8 @@ def collect_covariates_5min(
         combined_covariate_table_path (string): path to location where the
             combined covariate table should be written, i.e. the table
             containing all covariate values
+        groundwater (boolean): flag indicating whether the covariates are to be
+            collected for variables relevant to groundwater
 
     Side effects:
         writes csv tables, one per covariate, inside `intermediate_dir_path`
@@ -667,6 +674,40 @@ def collect_covariates_5min(
             point_shp_path, temp_val_dict['sanitation'], 1,
             'percent_no_sanitation', sanitation_path)
 
+    if groundwater:
+        depth_to_groundwater_path = os.path.join(
+            intermediate_dir_path, 'depth_to_groundwater.csv')
+        df_path_list.append(depth_to_groundwater_path)
+        if not os.path.exists(depth_to_groundwater_path):
+            raster_values_at_points(
+                point_shp_path, _COVARIATE_PATH_DICT['depth_to_groundwater'],
+                1, 'depth_to_groundwater', depth_to_groundwater_path)
+
+        clay_percent_path = os.path.join(
+            intermediate_dir_path, 'clay_percent.csv')
+        df_path_list.append(clay_percent_path)
+        if not os.path.exists(clay_percent_path):
+            raster_values_at_points(
+                point_shp_path, _COVARIATE_PATH_DICT['clay_percent'],
+                1, 'clay_percent', clay_percent_path)
+
+        silt_percent_path = os.path.join(
+            intermediate_dir_path, 'silt_percent.csv')
+        df_path_list.append(silt_percent_path)
+        if not os.path.exists(silt_percent_path):
+            raster_values_at_points(
+                point_shp_path, _COVARIATE_PATH_DICT['silt_percent'],
+                1, 'silt_percent', silt_percent_path)
+
+        sand_percent_path = os.path.join(
+            intermediate_dir_path, 'sand_percent.csv')
+        df_path_list.append(sand_percent_path)
+        if not os.path.exists(sand_percent_path):
+            raster_values_at_points(
+                point_shp_path, _COVARIATE_PATH_DICT['sand_percent'],
+                1, 'sand_percent', sand_percent_path)
+
+
     merge_data_frame_list(df_path_list, combined_covariate_table_path)
 
     # clean up temporary files
@@ -729,7 +770,7 @@ def collect_groundwater_covariates_orig():
         out_dir, 'combined_covariates.csv')
     collect_covariates_5min(
         _GROUNDWATER_STATION_SHP_PATH, intermediate_dir_path,
-        combined_covariate_table_path)
+        combined_covariate_table_path, groundwater=True)
 
 
 def add_updated_ndr():
@@ -783,9 +824,9 @@ def add_updated_ndr():
 
 def main():
     """Program entry point."""
-    # collect_groundwater_covariates_orig()
-    # add_updated_ndr()
-    n_fert_at_points()
+    collect_groundwater_covariates_orig()
+    add_updated_ndr()
+    # n_fert_at_points()
 
 
 if __name__ == '__main__':
