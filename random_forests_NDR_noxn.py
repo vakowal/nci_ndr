@@ -1,6 +1,4 @@
 """Train random forests model to predict noxn from NDR outputs."""
-import os
-
 import numpy
 import pandas
 from sklearn.ensemble import RandomForestRegressor
@@ -13,7 +11,7 @@ _NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predi
 _NOXN_PREDICTOR_SURF_DF_PATH = "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_surf.csv"
 
 
-def random_forests_NDR_noxn_ground(noxn_predictor_gr_df_path):
+def random_forests_ndr_noxn_ground(noxn_predictor_gr_df_path):
     """Train and test random forests model for groundwater points.
 
     Parameters:
@@ -65,7 +63,7 @@ def random_forests_NDR_noxn_ground(noxn_predictor_gr_df_path):
     print(var_imp_df)
 
 
-def random_forests_NDR_noxn_surface(noxn_predictor_surf_df_path):
+def random_forests_ndr_noxn_surface(noxn_predictor_surf_df_path):
     """Train and test random forests model for surface points.
 
     Parameters:
@@ -126,6 +124,6 @@ def random_forests_NDR_noxn_surface(noxn_predictor_surf_df_path):
 
 if __name__ == '__main__':
     print("*** Surface model ***")
-    random_forests_NDR_noxn_surface(_NOXN_PREDICTOR_SURF_DF_PATH)
+    random_forests_ndr_noxn_surface(_NOXN_PREDICTOR_SURF_DF_PATH)
     print("\n*** Groundwater model ***")
-    random_forests_NDR_noxn_ground(_NOXN_PREDICTOR_GR_DF_PATH)
+    random_forests_ndr_noxn_ground(_NOXN_PREDICTOR_GR_DF_PATH)
