@@ -63,7 +63,7 @@ def reclassify_nodata(target_path):
     """
     def reclassify_op(target_raster):
         reclassified_raster = numpy.copy(target_raster)
-        reclassify_mask = (target_raster == previous_nodata_value)
+        reclassify_mask = numpy.isclose(target_raster, previous_nodata_value)
         reclassified_raster[reclassify_mask] = _TARGET_NODATA
         return reclassified_raster
 
@@ -156,6 +156,10 @@ def predict_noxn(
     """
     def rf_predict_op(*covariate_list):
         """Use a trained random forest model to predict noxn."""
+        # for a reason I don't understand, NaN values are cropping up here.
+        # mask them out.
+        for covar_arr in covariate_list:
+            numpy.place(covar_arr, numpy.isnan(covar_arr), [_TARGET_NODATA])
         invalid_mask = numpy.any(
             numpy.isclose(numpy.array(covariate_list), _TARGET_NODATA), axis=0)
         covar_arr = numpy.stack([r.ravel() for r in covariate_list], axis=1)
@@ -265,5 +269,4 @@ def main():
 
 
 if __name__ == '__main__':
-    __spec__ = None
     main()
