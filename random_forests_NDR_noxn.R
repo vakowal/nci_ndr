@@ -124,7 +124,7 @@ stn_covar_df$lake <- 0
 stn_covar_df[stn_covar_df$Water.Type == 'Lake station', 'lake'] <- 1
 stn_covar_df$river <- 0
 stn_covar_df[stn_covar_df$Water.Type == 'River station', 'river'] <- 1
-stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:5, 7:11, 20:21)]  # pixel-level covariates
+stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:5, 8:11, 20:21)]  # pixel-level covariates
 stn_covar_df <- stn_covar_df[, stn_covar_cols]
 
 # merge covariates with NOxN observations
@@ -132,7 +132,7 @@ combined_df <- merge(stn_covar_df, noxn_obs_restr, by="GEMS.Station.Number")  # 
 
 # restrict by stability of N fert application
 combined_df_restr <- combined_df[combined_df$GEMS.Station.Number %in% fert_app_subset_stn_list, ]
-rf_covar_df <- combined_df_restr[, 2:12]
+rf_covar_df <- combined_df_restr[, 2:11]
 # save filtered data frame for analysis in Python
 write.csv(rf_covar_df, "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_surf.csv", row.names=FALSE)
 
@@ -142,7 +142,6 @@ out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated
 # K-fold cross-validation
 set.seed(491)
 fitControl <- trainControl(method='repeatedcv', number=10, repeats=10)
-rf_covar_df <- subset(rf_covar_df, select=-c(train))
 rf_covar_df$lake <- as.factor(rf_covar_df$lake)
 rf_covar_df$river <- as.factor(rf_covar_df$river)
 
@@ -205,14 +204,14 @@ match_df <- read.csv(OBJECTID_MATCH_CSV_GR)
 covar_df <- merge(covar_df, match_df)
 STN_DF <- read.csv(GR_NOXN_STATION_CSV)
 stn_covar_df <- merge(covar_df, STN_DF, by.x='GEMS.Stati', by.y='GEMS.Station.Number')
-stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:5, 8:15)]  # pixel covar cols for groundwater (no basin area covar)
+stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:5, 8:13, 15)]  # pixel covar cols for groundwater (no basin area covar)
 stn_covar_df <- stn_covar_df[, stn_covar_cols]
 
 # merge groundwater covariates with noxn obs
 combined_df <- merge(stn_covar_df, noxn_obs_restr, by.x='GEMS.Stati', by.y='GEMS.Station.Number')
 
 # write out groundwater raw data for random forests analysis in Python
-combined_df_restr <- combined_df[, 2:13]
+combined_df_restr <- combined_df[, 2:12]
 write.csv(combined_df_restr, "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_gr.csv", row.names=FALSE)
 
 # restrict by time period and n fert application
