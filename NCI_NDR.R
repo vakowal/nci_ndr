@@ -240,3 +240,44 @@ san_avg_2000_2015_countryid <- san_avg_2000_2015_countryid[!(is.na(san_avg_2000_
 
 write.csv(san_avg_2000_2015_countryid, "F:/NCI_NDR/Data sanitation/no_sanitation_provision_avg_2000-2015.csv",
           row.names=FALSE)
+
+# match country-level endpoints data with ISO3 country codes
+country_codes <- read.csv("F:/NCI_NDR/Data national_boundaries/countries_iso3_match_table.csv")
+cancer_rates <- read.csv("F:/NCI_NDR/Data endpoints/colorectal_cancer_risk_2018_per_person_by_country.csv",
+                         stringsAsFactors=FALSE)
+water_sources <- read.csv("F:/NCI_NDR/Data endpoints/Freshwater_groundwater_World_Bank_countries.csv")
+
+cancer_rates <- cancer_rates[, c("Country.Name", "World.Bank.Country.Code", "Rate.per.person")]
+water_sources <- water_sources[, c("Country.Name", "Country.Code.WB", "Country.Code.shapefile", "X..Surface.water", "X..Ground.water")]
+colnames(water_sources) <- c("Country.Name", "World.Bank.Country.Code", "iso3", "perc_surface", "perc_ground")
+
+water_join <- merge(water_sources, country_codes, by='iso3', all=TRUE)  # water source table contains ISO3 codes
+water_join <- water_join[!(is.na(water_join$id)), ]  # drop 2 countries with values in water source table missing from shapefile
+water_join[is.na(water_join$perc_surface), 'perc_surface'] <- 0.5  # give missing values the background value
+water_source_by_country_id <- water_join[, c('iso3', 'id', 'perc_surface')]
+write.csv(water_source_by_country_id, "F:/NCI_NDR/Data endpoints/water_source_by_country_id.csv",
+          row.names=FALSE)
+
+cancer_good <- cancer_rates[cancer_rates$World.Bank.Country.Code != 'na', ]
+cancer_good[cancer_good$Country.Name == 'Namibia', 'World.Bank.Country.Code'] <- 'NAM'
+cancer_good <- cancer_good[cancer_good$World.Bank.Country.Code != 'PSE', ]
+cancer_good <- cancer_good[cancer_good$World.Bank.Country.Code != 'XKX', ]
+cancer_join1 <- merge(cancer_good, water_join, by='World.Bank.Country.Code', all.x=TRUE)
+cancer_join1 <- cancer_join1[, c('Rate.per.person', 'iso3', 'id')]
+
+# figuring out codes this way
+need_code <- cancer_rates[cancer_rates$World.Bank.Country.Code == 'na', ]
+cancer_fill <- merge(need_code, country_codes, by.x='Country.Name', by.y='nev_name', all.x=TRUE)
+# add a few country codes manually
+cancer_fill[cancer_fill$Country.Name == 'Bahamas', 'iso3'] <- 'BHS'
+cancer_fill <- cancer_fill[cancer_fill$Country.Name != 'Saint Lucia', ]
+cancer_fill <- cancer_fill[!is.na(cancer_fill$iso3), c("Rate.per.person", "iso3")]
+cancer_join2 <- merge(cancer_fill, country_codes, by='iso3', all.x=TRUE)
+cancer_join2 <- cancer_join2[, c('Rate.per.person', 'iso3', 'id')]
+
+cancer_corr <- rbind(cancer_join1, cancer_join2)
+cancer_full <- merge(cancer_corr, country_codes, all.y=TRUE)
+cancer_full[is.na(cancer_full$Rate.per.person), 'Rate.per.person'] <- 0.000242  # use background rate for countries with missing data
+cancer_rate_by_country_id <- cancer_full[, c('iso3', 'id', 'Rate.per.person')]
+write.csv(cancer_rate_by_country_id, "F:/NCI_NDR/Data endpoints/cancer_rate_by_country_id.csv",
+          row.names=FALSE)
