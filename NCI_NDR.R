@@ -281,3 +281,16 @@ cancer_full[is.na(cancer_full$Rate.per.person), 'Rate.per.person'] <- 0.000242  
 cancer_rate_by_country_id <- cancer_full[, c('iso3', 'id', 'Rate.per.person')]
 write.csv(cancer_rate_by_country_id, "F:/NCI_NDR/Data endpoints/cancer_rate_by_country_id.csv",
           row.names=FALSE)
+
+# resample population raster to 5min resolution with block statistics
+library(raster)
+target_pixel_size <- 0.08333333333333332871  # 5 arc min
+population_raster <- "F:/NCI_NDR/Data population Landscan/LandScan Global 2018/LandScan2018_WGS84.tif"
+population_5min <- "F:/NCI_NDR/Data population Landscan/LandScan Global 2018/LandScan2018_WGS84_5min.tif"
+in_ras <- raster(population_raster)
+in_pixel_size = xres(in_ras)
+aggregate_factor = round(target_pixel_size / in_pixel_size)
+agg_ras <- aggregate(
+  in_ras, fact=aggregate_factor, fun=sum, expand=TRUE, na.rm=TRUE)
+out_ras <- reclassify(agg_ras, cbind(NA, -1.))
+writeRaster(out_ras, filename=population_5min, NAflag=-1.)
