@@ -204,7 +204,7 @@ match_df <- read.csv(OBJECTID_MATCH_CSV_GR)
 covar_df <- merge(covar_df, match_df)
 STN_DF <- read.csv(GR_NOXN_STATION_CSV)
 stn_covar_df <- merge(covar_df, STN_DF, by.x='GEMS.Stati', by.y='GEMS.Station.Number')
-stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:5, 8:13, 15)]  # pixel covar cols for groundwater (no basin area covar)
+stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:5, 8:14)]  # pixel covar cols for groundwater (no basin area covar)
 stn_covar_df <- stn_covar_df[, stn_covar_cols]
 
 # merge groundwater covariates with noxn obs

@@ -55,9 +55,8 @@ _COVARIATE_PATH_DICT = {
     'sanitation_table': "F:/NCI_NDR/Data sanitation/no_sanitation_provision_avg_2000-2015.csv",
     'countries_raster': "F:/NCI_NDR/Data world borders/TM_WORLD_BORDERS-03_countryid.tif",
     'depth_to_groundwater': "F:/NCI_NDR/Data HydroATLAS/gwt_cm_sav_level12.tif",
-    'clay_percent': "F:/NCI_NDR/Data HydroATLAS/cly_pc_sav_level12.tif",
-    'silt_percent': "F:/NCI_NDR/Data HydroATLAS/slt_pc_sav_level12.tif",
-    'sand_percent': "F:/NCI_NDR/Data HydroATLAS/snd_pc_sav_level12.tif",
+    'clay_percent': "F:/NCI_NDR/Data soil ISRIC/CLYPPT_M_sl1_10km_ll.tif",
+    'sand_percent': "F:/NCI_NDR/Data soil ISRIC/SNDPPT_M_sl1_10km_ll.tif",
 }
 
 # path to % urban covariate at 5 min resolution
@@ -690,14 +689,6 @@ def collect_covariates_5min(
             raster_values_at_points(
                 point_shp_path, _COVARIATE_PATH_DICT['clay_percent'],
                 1, 'clay_percent', clay_percent_path)
-
-        silt_percent_path = os.path.join(
-            intermediate_dir_path, 'silt_percent.csv')
-        df_path_list.append(silt_percent_path)
-        if not os.path.exists(silt_percent_path):
-            raster_values_at_points(
-                point_shp_path, _COVARIATE_PATH_DICT['silt_percent'],
-                1, 'silt_percent', silt_percent_path)
 
         sand_percent_path = os.path.join(
             intermediate_dir_path, 'sand_percent.csv')

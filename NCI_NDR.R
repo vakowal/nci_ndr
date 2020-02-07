@@ -231,6 +231,9 @@ san_subs_df[(is.na(san_subs_df$unimproved) & is.na(san_subs_df$limited) & is.na(
 san_subs_df <- san_subs_df[san_subs_df$year < 2016, ]
 
 san_avg_2000_2015 <- aggregate(no_san_provision~ISO3, data=san_subs_df, FUN=mean)
+# assign the value for Morocco to the value for "Western Sahara"
+morocco_val <- san_avg_2000_2015[san_avg_2000_2015$ISO3 == 'MAR', 'no_san_provision']
+san_avg_2000_2015 <- rbind(san_avg_2000_2015, data.frame("ISO3"='ESH', "no_san_provision"=morocco_val))
 # match these values with countryid raster via ISO3 country code field
 countryid_iso3_match_csv <- "F:/NCI_NDR/Data world borders/countryid_iso3_match_table_tm_world_borders_0.3.csv"
 countryid_match_df <- read.csv(countryid_iso3_match_csv)

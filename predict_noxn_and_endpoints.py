@@ -20,8 +20,8 @@ _GLOBAL_COVARIATE_PATH_DICT = {
     'proportion_urban': "F:/NCI_NDR/Data urban extent GRUMP/perc_urban_5min.tif",
     'percent_no_sanitation': "F:/NCI_NDR/Data sanitation/no_sanitation_provision_avg_2000-2015.tif",
     'depth_to_groundwater': "F:/NCI_NDR/Data HydroATLAS/gwt_cm_sav_level12.tif",
-    'clay_percent': "F:/NCI_NDR/Data HydroATLAS/cly_pc_sav_level12.tif",
-    'silt_percent': "F:/NCI_NDR/Data HydroATLAS/slt_pc_sav_level12.tif",
+    'clay_percent': "F:/NCI_NDR/Data soil ISRIC/CLYPPT_M_sl1_10km_ll.tif",
+    'sand_percent': "F:/NCI_NDR/Data soil ISRIC/SNDPPT_M_sl1_10km_ll.tif",
 }
 
 # base data dictionary
@@ -383,6 +383,9 @@ def train_rf_model(
         max_features=max_features, min_samples_leaf=5, oob_score=True,
         bootstrap=True)
     rf_model.fit(predictor_arr, noxn_arr)
+    training_rsq = rf_model.score(predictor_arr, noxn_arr)
+    print('R^2 Training Score: {}'.format(training_rsq))
+    print('OOB Score: {}'.format(rf_model.oob_score_))
     dump(rf_model, rf_pickle_filename)
 
     predictor_names = list(predictor_df.columns)
