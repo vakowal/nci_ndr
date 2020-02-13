@@ -22,6 +22,8 @@ _GLOBAL_COVARIATE_PATH_DICT = {
     'depth_to_groundwater': "F:/NCI_NDR/Data HydroATLAS/gwt_cm_sav_level12.tif",
     'clay_percent': "F:/NCI_NDR/Data soil ISRIC/CLYPPT_M_sl1_10km_ll.tif",
     'sand_percent': "F:/NCI_NDR/Data soil ISRIC/SNDPPT_M_sl1_10km_ll.tif",
+    'cattle': "F:/NCI_NDR/Data GLW/5_Ct_2010_Da.tif",
+    'pigs': "F:/NCI_NDR/Data GLW/5_Pg_2010_Da.tif",
 }
 
 # base data dictionary
@@ -408,7 +410,7 @@ def predict_surface_noxn(output_dir):
     surface_rf_path = os.path.join(_PROCESSING_DIR, 'surface_model.joblib')
     aligned_covariate_dir = os.path.join(
         _PROCESSING_DIR, 'aligned_covariates_surface')
-    surface_max_features = 7
+    surface_max_features = 9
     surface_predictors = train_rf_model(
         _NOXN_PREDICTOR_SURF_DF_PATH, surface_max_features, surface_rf_path)
     for scenario_key in _N_EXPORT_PATH_DICT:
@@ -544,7 +546,7 @@ def main():
         os.makedirs(output_dir)
     predict_surface_noxn(output_dir)
     predict_groundwater_noxn(output_dir)
-    calc_endpoints(output_dir)
+    # calc_endpoints(output_dir)
 
 
 if __name__ == '__main__':

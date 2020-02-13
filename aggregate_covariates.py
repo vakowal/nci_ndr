@@ -57,6 +57,8 @@ _COVARIATE_PATH_DICT = {
     'depth_to_groundwater': "F:/NCI_NDR/Data HydroATLAS/gwt_cm_sav_level12.tif",
     'clay_percent': "F:/NCI_NDR/Data soil ISRIC/CLYPPT_M_sl1_10km_ll.tif",
     'sand_percent': "F:/NCI_NDR/Data soil ISRIC/SNDPPT_M_sl1_10km_ll.tif",
+    'cattle': "F:/NCI_NDR/Data GLW/5_Ct_2010_Da.tif",
+    'pigs': "F:/NCI_NDR/Data GLW/5_Pg_2010_Da.tif",
 }
 
 # path to % urban covariate at 5 min resolution
@@ -673,6 +675,21 @@ def collect_covariates_5min(
             point_shp_path, temp_val_dict['sanitation'], 1,
             'percent_no_sanitation', sanitation_path)
 
+    cattle_path = os.path.join(intermediate_dir_path, 'cattle.csv')
+    df_path_list.append(cattle_path)
+    if not os.path.exists(cattle_path):
+        raster_values_at_points(
+            point_shp_path, _COVARIATE_PATH_DICT['cattle'],
+            1, 'cattle', cattle_path)
+
+    pigs_path = os.path.join(intermediate_dir_path, 'pigs.csv')
+    df_path_list.append(pigs_path)
+    if not os.path.exists(pigs_path):
+        raster_values_at_points(
+            point_shp_path, _COVARIATE_PATH_DICT['pigs'],
+            1, 'pigs', pigs_path)
+
+
     if groundwater:
         depth_to_groundwater_path = os.path.join(
             intermediate_dir_path, 'depth_to_groundwater.csv')
@@ -815,6 +832,7 @@ def add_updated_ndr():
 
 def main():
     """Program entry point."""
+    collect_surface_covariates_points_orig()
     collect_groundwater_covariates_orig()
     add_updated_ndr()
     # n_fert_at_points()
