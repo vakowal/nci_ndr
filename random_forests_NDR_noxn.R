@@ -124,7 +124,9 @@ stn_covar_df <- merge(covar_df, STN_DF)
 # stn_covar_df[stn_covar_df$Water.Type == 'Lake station', 'lake'] <- 1
 # stn_covar_df$river <- 0
 # stn_covar_df[stn_covar_df$Water.Type == 'River station', 'river'] <- 1
-stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:5, 8:11)]  # pixel-level covariates
+stn_covar_cols <- c('GEMS.Station.Number', 'n_export', 'precip_variability',
+                    'population', 'pigs', 'cattle', 'flash_flow', 'average_flow',
+                    'percent_no_sanitation', 'proportion_urban')  # pixel-level covariates
 stn_covar_df <- stn_covar_df[, stn_covar_cols]
 
 # merge covariates with NOxN observations
@@ -132,12 +134,13 @@ combined_df <- merge(stn_covar_df, noxn_obs_restr, by="GEMS.Station.Number")  # 
 
 # restrict by stability of N fert application
 combined_df_restr <- combined_df[combined_df$GEMS.Station.Number %in% fert_app_subset_stn_list, ]
-rf_covar_df <- combined_df_restr[, 2:9]
+rf_covar_df <- combined_df_restr[, 2:dim(combined_df_restr)[2]]
 # save filtered data frame for analysis in Python
 write.csv(rf_covar_df, "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_surf.csv", row.names=FALSE)
 
 # random forests model, surface stations
-out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR/surface/N_application_subset_2000_2015/WB_station_orig_5min_pixel"
+out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR_3.2.20/surface/N_application_subset_2000_2015/WB_station_orig_5min_pixel"
+dir.create(out_dir, recursive=TRUE)
 
 # K-fold cross-validation
 set.seed(491)
@@ -158,15 +161,15 @@ print(rf_var_imp)
 sink()
 
 # Bar chart: variable importance (for an example model)
-var_imp_csv <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/N_application_subset_2000_2015/WB_station_orig_5min_pixel/no_climate_zones/ranger_rf_var_importance.csv"
+var_imp_csv <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR/ground/all_stations/WB_station_orig_5min_pixel/hydroatlas_soil/variable_importance.csv"
 var_imp <- read.csv(var_imp_csv)
-var_imp$Predictor <- reorder(var_imp$X, var_imp$Overall, descending=TRUE)
-var_imp_res <- var_imp[var_imp$Overall > 7, ]
+var_imp$Predictor <- reorder(var_imp$variable, var_imp$importance, descending=TRUE)
+# var_imp_res <- var_imp[var_imp$Overall > 7, ]
 library(ggplot2)
-p <- ggplot(var_imp_res, aes(x=Predictor, y=Overall))
+p <- ggplot(var_imp, aes(x=Predictor, y=importance))
 p <- p + geom_bar(stat='identity') + coord_flip()
 p <- p + ylab("Variable Importance") + xlab("")
-pngname <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/N_application_subset_2000_2015/WB_station_orig_5min_pixel/no_climate_zones/var_imp_plot.png"
+pngname <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR/ground/all_stations/WB_station_orig_5min_pixel/hydroatlas_soil/var_imp_plot.png"
 png(file=pngname, units="in", res=300, width=3.5, height=4)
 print(p)
 dev.off()
@@ -204,14 +207,17 @@ match_df <- read.csv(OBJECTID_MATCH_CSV_GR)
 covar_df <- merge(covar_df, match_df)
 STN_DF <- read.csv(GR_NOXN_STATION_CSV)
 stn_covar_df <- merge(covar_df, STN_DF, by.x='GEMS.Stati', by.y='GEMS.Station.Number')
-stn_covar_cols <- colnames(stn_covar_df)[c(1, 3:5, 8:14)]  # pixel covar cols for groundwater (no basin area covar)
+stn_covar_cols <- c('GEMS.Stati', 'n_export', 'precip_variability',
+                    'population', 'depth_to_groundwater', 'cattle',
+                    'average_flow', 'percent_no_sanitation', 'clay_percent',
+                    'flash_flow', 'sand_percent', 'pigs', 'proportion_urban')
 stn_covar_df <- stn_covar_df[, stn_covar_cols]
 
 # merge groundwater covariates with noxn obs
 combined_df <- merge(stn_covar_df, noxn_obs_restr, by.x='GEMS.Stati', by.y='GEMS.Station.Number')
 
 # write out groundwater raw data for random forests analysis in Python
-combined_df_restr <- combined_df[, 2:12]
+combined_df_restr <- combined_df[, 2:dim(combined_df)[2]]
 write.csv(combined_df_restr, "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_gr.csv", row.names=FALSE)
 
 # restrict by time period and n fert application
@@ -228,7 +234,8 @@ write.csv(combined_df_restr, "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predi
 
 # random forests model
 library(caret)
-out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR/ground/all_stations/WB_station_orig_5min_pixel"
+out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR_3.2.20/ground/all_stations/WB_station_orig_5min_pixel"
+dir.create(out_dir, recursive=TRUE)
 rf_covar_df <- combined_df_restr
 
 # K-fold cross-validation
