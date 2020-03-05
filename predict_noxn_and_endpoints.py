@@ -8,6 +8,7 @@ import numpy
 import pandas
 
 from sklearn.ensemble import RandomForestRegressor
+import forestci
 from joblib import dump, load
 import pygeoprocessing
 
@@ -37,22 +38,45 @@ _BASE_DATA_PATH_DICT = {
 # n export rasters for a set of scenarios: each must be aggregated up to
 # approximately 5 arc min resolution, each must have a unique basename
 _N_EXPORT_PATH_DICT = {
-    'baseline': "F:/NCI_NDR/Data NDR/nutrient_deficit_5min_cur_compressed_md5_031d4bb444325835315a2cc825be3fd4.tif",
-    # continue with other scenarios here
+    'baseline': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_baseline_napp_rate_global_md5_b210146a5156422041eb7128c147512f.tif",
+    'ag_expansion': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_ag_expansion_global_md5_ea15fb82df52d49a1d0c4ffe197cdd0d.tif",
+    'ag_intensification': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_ag_intensification_global_md5_2734116e8c452f4c484ebcb574aab665.tif",
+    'restoration': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_restoration_napp_rate_global_md5_7f9ddf313e414a68cbb8ba204101b190.tif",
 }
 
 # directory to hold temporary outputs
-_PROCESSING_DIR = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/intermediate"
+_PROCESSING_DIR = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate"  # TODO update me
 
 # noxn and covariate observations for groundwater
 _NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_gr.csv"
 
 # noxn and covariate observations for surface water
-_NOXN_PREDICTOR_SURF_DF_PATH = "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_surf.csv"
+_NOXN_PREDICTOR_SURF_DF_PATH = "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_surf_2000_2015.csv"
 
 # nodata value for inputs and result
 _TARGET_NODATA = -1.0
 
+
+def subtract_op(raster1, raster2):
+    """Subtract raster2 from raster1 element-wise."""
+    valid_mask = (
+        (raster1 != _TARGET_NODATA) &
+        (raster2 != _TARGET_NODATA))
+    result = numpy.empty(raster1.shape, dtype=numpy.float32)
+    result[:] = _TARGET_NODATA
+    result[valid_mask] = raster1[valid_mask] - raster2[valid_mask]
+    return result
+
+
+def add_op(raster1, raster2):
+    """Add two rasters."""
+    valid_mask = (
+        (raster1 != _TARGET_NODATA) &
+        (raster2 != _TARGET_NODATA))
+    result = numpy.empty(raster1.shape, dtype=numpy.float32)
+    result[:] = _TARGET_NODATA
+    result[valid_mask] = raster1[valid_mask] + raster2[valid_mask]
+    return result
 
 def reclassify_nodata(target_path):
     """Reclassify the nodata value of a raster to _TARGET_NODATA.
@@ -292,6 +316,106 @@ def prepare_covariates(predictor_names, aligned_covariate_dir):
     return aligned_covariate_dict
 
 
+def generate_confidence_intervals(
+        noxn_predictor_df_path, noxn_path, aligned_covariate_dir,
+        n_export_path, rf_pickle_filename, output_dir, basename):
+    """Generate confidence intervals from random forest model.
+
+    Parameters:
+        noxn_path (string): path to raster containing predicted nitrate
+            concentration for which the confidence intervals should be
+            estimated
+        aligned_covariate_dir (string): path to directory where aligned
+            covariate rasters should be stored
+        n_export_path (string): path to raster containing N export for a single
+            scenario
+        rf_pickle_filename (string): path to file on disk containing trained
+            random forests model. This file should have the extension '.joblib'
+        predictor_names (list): list of predictor names giving the order of
+            covariates used to fit the random forests model. Any subsequent use
+            of the model to make predictions on new covariate data must use
+            covariates in this order.
+        output_dir (string): location on disk where outputs should be saved
+        basename (string): basename for error, upper and lower bound rasters
+            that should be created
+
+    Side effects:
+        creates a raster named 'noxn_error_<basename>.tif' in output_dir
+        creates a raster named 'noxn_upper_bound_<basename>.tif' in output_dir
+        creates a raster named 'noxn_lower_bound_<basename>.tif' in output_dir
+
+    Returns:
+        None
+
+    """
+    def calc_error_bound(*covariate_list):
+        """Calculate +/- symmetric error bound from random forest model.
+
+        The upper and lower error bound is calculated as the square root of the
+        unbiased sampling variance calculated from the trained model. Upper and
+        lower bounds can be calculated from this by adding this error to
+        predicted noxn to get the upper bound; and by subtracting this error
+        from predicted noxn to get the lower bound.
+
+        Parameters:
+            covariate_list (list of numpy.ndarrays): list of covariate
+                predictors used to predict nitrate concentration
+
+        Returns:
+            error_bound, the square root of unbiased sampling variance
+
+        """
+        for covar_arr in covariate_list:
+            numpy.place(covar_arr, numpy.isnan(covar_arr), [_TARGET_NODATA])
+        invalid_mask = numpy.any(
+            numpy.isclose(numpy.array(covariate_list), _TARGET_NODATA), axis=0)
+        covar_arr = numpy.stack([r.ravel() for r in covariate_list], axis=1)
+        unbiased_error = forestci.random_forest_error(
+            rf_model, predictor_arr, covar_arr)
+        error_arr = numpy.sqrt(unbiased_error)
+        error_bound = error_arr.reshape(covariate_list[0].shape)
+        error_bound[invalid_mask] = _TARGET_NODATA
+        return error_bound
+
+    # get predictor covariate array
+    combined_df = pandas.read_csv(noxn_predictor_df_path)
+    combined_df.dropna(inplace=True)
+    predictor_df = combined_df.drop('noxn', axis=1)
+    predictor_arr = numpy.array(predictor_df)
+    predictor_names = list(predictor_df.columns)
+
+    _GLOBAL_COVARIATE_PATH_DICT['n_export'] = n_export_path
+    aligned_covariate_dict = prepare_covariates(
+        predictor_names, aligned_covariate_dir)
+    covariate_path_list = [
+        aligned_covariate_dict[key] for key in predictor_names]
+
+    rf_model = load(rf_pickle_filename)
+
+    # with tempfile.NamedTemporaryFile(
+    #         prefix='error_bound') as error_temp_file:
+    #     error_path = error_temp_file.name
+    error_path = os.path.join(
+        output_dir, 'noxn_error_{}.tif'.format(basename))
+    pygeoprocessing.raster_calculator(
+        [(path, 1) for path in covariate_path_list],
+        calc_error_bound, error_path, gdal.GDT_Float32, _TARGET_NODATA)
+
+    lower_bound_path = os.path.join(
+        output_dir, 'noxn_lower_bound_{}.tif'.format(basename))
+    pygeoprocessing.raster_calculator(
+        [(path, 1) for path in [noxn_path, error_path]],
+        subtract_op, lower_bound_path, gdal.GDT_Float32, _TARGET_NODATA)
+    upper_bound_path = os.path.join(
+        output_dir, 'noxn_upper_bound_{}.tif'.format(basename))
+    pygeoprocessing.raster_calculator(
+        [(path, 1) for path in [noxn_path, error_path]],
+        add_op, upper_bound_path, gdal.GDT_Float32, _TARGET_NODATA)
+
+    # clean up
+    # os.remove(error_path)
+
+
 def predict_noxn(
         aligned_covariate_dir, n_export_path, rf_pickle_filename,
         predictor_names, output_path):
@@ -368,7 +492,7 @@ def train_rf_model(
             new covariate data must use covariates in this order.
 
     """
-     # read data that was filtered and subsetted in R
+    # read data that was filtered and subsetted in R
     combined_df = pandas.read_csv(noxn_predictor_df_path)
     # drop rows containing missing data
     combined_df.dropna(inplace=True)
@@ -410,16 +534,20 @@ def predict_surface_noxn(output_dir):
     surface_rf_path = os.path.join(_PROCESSING_DIR, 'surface_model.joblib')
     aligned_covariate_dir = os.path.join(
         _PROCESSING_DIR, 'aligned_covariates_surface')
-    surface_max_features = 9
+    surface_max_features = 2
     surface_predictors = train_rf_model(
         _NOXN_PREDICTOR_SURF_DF_PATH, surface_max_features, surface_rf_path)
     for scenario_key in _N_EXPORT_PATH_DICT:
         n_export_path = _N_EXPORT_PATH_DICT[scenario_key]
-        output_path = os.path.join(
+        noxn_path = os.path.join(
             output_dir, 'surface_noxn_{}.tif'.format(scenario_key))
         predict_noxn(
             aligned_covariate_dir, n_export_path, surface_rf_path,
-            surface_predictors, output_path)
+            surface_predictors, noxn_path)
+        generate_confidence_intervals(
+            _NOXN_PREDICTOR_SURF_DF_PATH, noxn_path, aligned_covariate_dir,
+            n_export_path, surface_rf_path, output_dir,
+            'surface_{}'.format(scenario_key))
 
 
 def predict_groundwater_noxn(output_dir):
@@ -443,11 +571,15 @@ def predict_groundwater_noxn(output_dir):
         _NOXN_PREDICTOR_GR_DF_PATH, ground_max_features, ground_rf_path)
     for scenario_key in _N_EXPORT_PATH_DICT:
         n_export_path = _N_EXPORT_PATH_DICT[scenario_key]
-        output_path = os.path.join(
+        noxn_path = os.path.join(
             output_dir, 'ground_noxn_{}.tif'.format(scenario_key))
         predict_noxn(
             aligned_covariate_dir, n_export_path, ground_rf_path,
-            ground_predictors, output_path)
+            ground_predictors, noxn_path)
+        generate_confidence_intervals(
+            _NOXN_PREDICTOR_GR_DF_PATH, noxn_path, aligned_covariate_dir,
+            n_export_path, ground_rf_path, output_dir,
+            'ground_{}'.format(scenario_key))
 
 
 def calc_endpoints(output_dir):
@@ -541,12 +673,12 @@ def main():
     """Program entry point."""
     if not os.path.exists(_PROCESSING_DIR):
         os.makedirs(_PROCESSING_DIR)
-    output_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/output"
+    output_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/output"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     predict_surface_noxn(output_dir)
     predict_groundwater_noxn(output_dir)
-    # calc_endpoints(output_dir)
+    calc_endpoints(output_dir)
 
 
 if __name__ == '__main__':
