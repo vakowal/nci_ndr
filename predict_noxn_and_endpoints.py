@@ -2,6 +2,7 @@
 import os
 import tempfile
 import shutil
+import psutil
 
 from osgeo import gdal
 import numpy
@@ -45,7 +46,7 @@ _N_EXPORT_PATH_DICT = {
 }
 
 # directory to hold temporary outputs
-_PROCESSING_DIR = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate"  # TODO update me
+_PROCESSING_DIR = None
 
 # noxn and covariate observations for groundwater
 _NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_gr.csv"
@@ -370,8 +371,10 @@ def generate_confidence_intervals(
         invalid_mask = numpy.any(
             numpy.isclose(numpy.array(covariate_list), _TARGET_NODATA), axis=0)
         covar_arr = numpy.stack([r.ravel() for r in covariate_list], axis=1)
+        mem_avail_mb = (psutil.virtual_memory().available >> 20) * 0.5
         unbiased_error = forestci.random_forest_error(
-            rf_model, predictor_arr, covar_arr)
+            rf_model, predictor_arr, covar_arr, memory_constrained=True,
+            memory_limit=mem_avail_mb)
         error_arr = numpy.sqrt(unbiased_error)
         error_bound = error_arr.reshape(covariate_list[0].shape)
         error_bound[invalid_mask] = _TARGET_NODATA
@@ -397,15 +400,21 @@ def generate_confidence_intervals(
     #     error_path = error_temp_file.name
     error_path = os.path.join(
         output_dir, 'noxn_error_{}.tif'.format(basename))
+    print("Calculating error bound for {} ...".format(basename))
     pygeoprocessing.raster_calculator(
         [(path, 1) for path in covariate_path_list],
-        calc_error_bound, error_path, gdal.GDT_Float32, _TARGET_NODATA)
+        calc_error_bound, error_path, gdal.GDT_Float32, _TARGET_NODATA,
+        largest_block=0, raster_driver_creation_tuple=(('GTIFF', (
+            'TILED=YES', 'BIGTIFF=YES', 'COMPRESS=LZW',
+            'BLOCKXSIZE=128', 'BLOCKYSIZE=128'))))
 
+    print("Calculating lower bound ...")
     lower_bound_path = os.path.join(
         output_dir, 'noxn_lower_bound_{}.tif'.format(basename))
     pygeoprocessing.raster_calculator(
         [(path, 1) for path in [noxn_path, error_path]],
         subtract_op, lower_bound_path, gdal.GDT_Float32, _TARGET_NODATA)
+    print("Calculating upper bound ...")
     upper_bound_path = os.path.join(
         output_dir, 'noxn_upper_bound_{}.tif'.format(basename))
     pygeoprocessing.raster_calculator(
@@ -671,16 +680,38 @@ def calc_endpoints(output_dir):
 
 def main():
     """Program entry point."""
-    if not os.path.exists(_PROCESSING_DIR):
-        os.makedirs(_PROCESSING_DIR)
-    output_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/output"
+    outer_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015"
+    output_dir = os.path.join(outer_dir, 'output')
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
+    global _PROCESSING_DIR
+    _PROCESSING_DIR = os.path.join(outer_dir, 'intermediate')
+    if not os.path.exists(_PROCESSING_DIR):
+        os.makedirs(_PROCESSING_DIR)
     predict_surface_noxn(output_dir)
     predict_groundwater_noxn(output_dir)
     calc_endpoints(output_dir)
 
 
+def test_confidence_intervals():
+    """Throwaway code to test calculation of confidence intervals."""
+    outer_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015"
+    output_dir = os.path.join(outer_dir, 'output')
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    global _PROCESSING_DIR
+    _PROCESSING_DIR = os.path.join(outer_dir, 'intermediate')
+    if not os.path.exists(_PROCESSING_DIR):
+        os.makedirs(_PROCESSING_DIR)
+    # for testing, work with baseline only
+    global _N_EXPORT_PATH_DICT
+    _N_EXPORT_PATH_DICT.pop('ag_expansion', None)
+    _N_EXPORT_PATH_DICT.pop('ag_intensification', None)
+    _N_EXPORT_PATH_DICT.pop('restoration', None)
+    predict_surface_noxn(output_dir)
+
+
 if __name__ == '__main__':
     __spec__ = None  # for running with pdb
-    main()
+    # main()
+    test_confidence_intervals()

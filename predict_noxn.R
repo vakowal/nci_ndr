@@ -23,27 +23,42 @@ surface_covar_path_list <- list(
   'percent_no_sanitation'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_surface/no_sanitation_provision_avg_2000-2015.tif",
   'proportion_urban'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_surface/perc_urban_5min.tif"
 )
-covar_stack <- stack(lapply(surface_covar_path_list, FUN=raster))
+# save each in native raster format
+native_format_list <- list()
+save_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_surface/raster_format"
+for(cv in names(surface_covar_path_list)){
+  save_as <- paste(save_dir, paste(
+                tools::file_path_sans_ext(basename(surface_covar_path_list[[cv]])), '.grd', sep=''),
+                sep='/')
+  writeRaster(raster(surface_covar_path_list[[cv]]), filename=save_as, overwrite=TRUE)
+  native_format_list[[cv]] <- save_as
+}
+covar_stack <- stack(lapply(native_format_list, FUN=raster))
 names(covar_stack) <- names(surface_covar_path_list)
 
 # Function to use ranger.predict onto a raster
-predfun <- function(covar_stack, model, save_as)
-{
-  out <- raster(covar_stack, layer=0)
-  bs <- blockSize(out)
-  out <- writeStart(out, save_as, overwrite=TRUE)
-  for (i in 1:bs$n) {
-    covar_df <- as.data.frame(getValues(covar_stack, row=bs$row[i], nrows=bs$nrows[i]))
-    na_vals <- apply(covar_df, 1, function(x) sum(is.na(x)))
-    p <- numeric(length=nrow(covar_df))
-    p[na_vals > 0] <- NA
-    p[na_vals==0] <- predict(model, covar_df[na_vals==0, ], type='se')$se
-    out <- writeValues(out, p, bs$row[i])
-  }
-  out <- writeStop(out)
-  return(out)
-}
+# this works, but causes a memory error
+# predfun <- function(covar_stack, model, save_as){
+#   out <- raster(covar_stack, layer=0)
+#   bs <- blockSize(out)
+#   out <- writeStart(out, save_as, overwrite=TRUE)
+#   for (i in 1:bs$n) {
+#     covar_df <- as.data.frame(getValues(covar_stack, row=bs$row[i], nrows=bs$nrows[i]))
+#     na_vals <- apply(covar_df, 1, function(x) sum(is.na(x)))
+#     p <- numeric(length=nrow(covar_df))
+#     p[na_vals > 0] <- NA
+#     p[na_vals==0] <- predict(model, covar_df[na_vals==0, ], type='se')$se
+#     out <- writeValues(out, p, bs$row[i])
+#   }
+#   out <- writeStop(out)
+#   return(out)
+# }
+# pred <- predfun(covar_stack, model=ranger_model, save_as="C:/Users/ginge/Desktop/ranger_surface_noxn_se.tif")
 
-# Run predictions
-pred <- predfun(covar_stack, model=ranger_model, save_as="C:/Users/ginge/Desktop/ranger_surface_noxn_se.tif")
+# use the {raster} predict function
+# pred_predict <- predict(covar_stack, ranger_model, progress='text', na.rm=TRUE,
+#                         type='se')  # memory error
+rasterOptions(maxmemory=1e+04, chunksize=1e+03, timer=TRUE)
+pred_predict <- predict(covar_stack, ranger_model, progress='text', na.rm=TRUE,
+                        type='se')
 
