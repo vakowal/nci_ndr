@@ -107,11 +107,11 @@ tile_and_predict <- function(
     names(covar_stack) <- covariate_name_list
 
     # predict response
-    repsonse_pred_tile_filename <- paste(
+    response_pred_tile_filename <- paste(
       pred_tile_dir, paste("response_", r, ".tif", sep=''), sep='/')
     response_pred <- predict_response(
-      covar_stack, model=ranger_model, save_as=repsonse_pred_tile_filename)
-    merge_list_response[[r]] <- repsonse_pred_tile_filename
+      covar_stack, model=ranger_model, save_as=response_pred_tile_filename)
+    merge_list_response[[r]] <- response_pred_tile_filename
 
     # predict standard error of the response
     se_pred_tile_filename <- paste(
@@ -150,7 +150,7 @@ for (scenario in names(N_EXPORT_PATH_LIST)) {
   COVAR_PATH_LIST[['n_export']] = N_EXPORT_PATH_LIST[[scenario]]
   response_target_path <- paste(output_dir, paste(
     "surface_noxn_", scenario, ".tif", sep=''), sep='/')
-  response_target_path <- paste(output_dir, paste(
+  se_target_path <- paste(output_dir, paste(
     "surface_noxn_se_", scenario, ".tif", sep=''), sep='/')
   tile_and_predict(
     intermediate_dir, EXTENT_DF, covariate_name_list, COVAR_PATH_LIST,
@@ -160,3 +160,25 @@ for (scenario in names(N_EXPORT_PATH_LIST)) {
 # ground noxn
 # noxn and covariate observations for ground water
 NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_gr.csv"
+
+# train the random forest model
+train_df <- read.csv(NOXN_PREDICTOR_GR_DF_PATH)
+ranger_train_df <- train_df[complete.cases(train_df), ]
+ranger_ground_model <- ranger(
+  noxn~., keep.inbag=TRUE, data=ranger_train_df, mtry=2, min.node.size=5)  # using mtry and min.node.size tuned by caret
+
+output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/R_ranger_pred"
+dir.create(output_dir, showWarnings=FALSE)
+intermediate_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate"
+covariate_df <- subset(train_df, select=-c(noxn))
+covariate_name_list <- colnames(covariate_df)
+for (scenario in names(N_EXPORT_PATH_LIST)) {
+  COVAR_PATH_LIST[['n_export']] = N_EXPORT_PATH_LIST[[scenario]]
+  response_target_path <- paste(output_dir, paste(
+    "ground_noxn_", scenario, ".tif", sep=''), sep='/')
+  se_target_path <- paste(output_dir, paste(
+    "ground_noxn_se_", scenario, ".tif", sep=''), sep='/')
+  tile_and_predict(
+    intermediate_dir, EXTENT_DF, covariate_name_list, COVAR_PATH_LIST,
+    ranger_ground_model, response_target_path, se_target_path)
+}
