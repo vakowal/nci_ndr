@@ -323,8 +323,8 @@ def generate_confidence_intervals(noxn_path, se_path, output_dir, basename):
     def lower_ci_op(mean, standard_error):
         """Calculate lower bound of 95% confidence interval from mean and se."""
         valid_mask = (
-            (mean != noxn_nodata) &
-            (standard_error != se_nodata))
+            (~numpy.isclose(mean, noxn_nodata)) &
+            (~numpy.isclose(standard_error, se_nodata)))
         result = numpy.empty(mean.shape, dtype=numpy.float32)
         result[:] = _TARGET_NODATA
         result[valid_mask] = (
@@ -334,8 +334,8 @@ def generate_confidence_intervals(noxn_path, se_path, output_dir, basename):
     def upper_ci_op(mean, standard_error):
         """Calculate upper bound of 95% confidence interval from mean and se."""
         valid_mask = (
-            (mean != noxn_nodata) &
-            (standard_error != se_nodata))
+            (~numpy.isclose(mean, noxn_nodata)) &
+            (~numpy.isclose(standard_error, se_nodata)))
         result = numpy.empty(mean.shape, dtype=numpy.float32)
         result[:] = _TARGET_NODATA
         result[valid_mask] = (
@@ -659,9 +659,33 @@ def predict_endpoints_only():
     calc_endpoints(noxn_dir, output_dir)
 
 
+def confidence_interval_wrapper():
+    """Generate lower and upper 95% confidence intervals for predicted noxn."""
+    noxn_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/R_ranger_pred"
+    output_dir = noxn_dir
+    for scenario_key in _N_EXPORT_PATH_DICT:
+        surface_noxn_path = os.path.join(
+            noxn_dir, 'surface_noxn_{}.tif'.format(scenario_key))
+        surface_noxn_se_path = os.path.join(
+            noxn_dir, 'surface_noxn_se_{}.tif'.format(scenario_key))
+        basename = 'surface_{}'.format(scenario_key)
+        generate_confidence_intervals(
+            surface_noxn_path, surface_noxn_se_path, output_dir, basename)
+
+
+        ground_noxn_path = os.path.join(
+            noxn_dir, 'ground_noxn_{}.tif'.format(scenario_key))
+        ground_noxn_se_path = os.path.join(
+            noxn_dir, 'ground_noxn_se_{}.tif'.format(scenario_key))
+        basename = 'ground_{}'.format(scenario_key)
+        generate_confidence_intervals(
+            ground_noxn_path, ground_noxn_se_path, output_dir, basename)
+
+
 def main():
     """Program entry point."""
-    predict_endpoints_only()
+    # predict_endpoints_only()
+    confidence_interval_wrapper()
 
 
 if __name__ == '__main__':
