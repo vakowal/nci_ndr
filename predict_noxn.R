@@ -3,7 +3,7 @@ library(ranger)
 library(raster)
 
 # extent bounding boxes of a regular grid of 60 tiles covering the extent of covariates
-EXTENT_DF <- read.csv("C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/extent_df.csv")
+EXTENT_DF <- read.csv("C:/Users/ginge/Documents/Python/nci_ndr/extent_df.csv")
 
 # aligned covariate rasters
 COVAR_PATH_LIST <- list(
@@ -14,8 +14,11 @@ COVAR_PATH_LIST <- list(
   'flash_flow'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/mean_div_range_1990_2015.tif",
   'average_flow'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/average_flow_1990_2015.tif",
   'percent_no_sanitation'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/no_sanitation_provision_avg_2000-2015.tif",
-  'proportion_urban'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/perc_urban_5min.tif"
-)
+  'proportion_urban'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/perc_urban_5min.tif",
+  'sand_percent'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/SNDPPT_M_sl1_10km_ll.tif",
+  'clay_percent'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/CLYPPT_M_sl1_10km_ll.tif",
+  'depth_to_groundwater'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/gwt_cm_sav_level12.tif"
+  )
 
 # aligned n export rasters for a set of scenarios
 N_EXPORT_PATH_LIST = list(
@@ -139,7 +142,7 @@ NOXN_PREDICTOR_SURF_DF_PATH = "C:/Users/ginge/Documents/Python/nci_ndr/noxn_pred
 train_df = read.csv(NOXN_PREDICTOR_SURF_DF_PATH)
 ranger_train_df <- train_df[complete.cases(train_df), ]
 ranger_model <- ranger(noxn~., keep.inbag=TRUE, data=ranger_train_df,
-                       mtry=2, min.node.size=5)  # using mtry and min.node.size tuned by caret
+                       mtry=2, min.node.size=5, importance='impurity')  # using mtry and min.node.size tuned by caret
 
 output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/R_ranger_pred"
 dir.create(output_dir, showWarnings=FALSE)
@@ -165,7 +168,8 @@ NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predic
 train_df <- read.csv(NOXN_PREDICTOR_GR_DF_PATH)
 ranger_train_df <- train_df[complete.cases(train_df), ]
 ranger_ground_model <- ranger(
-  noxn~., keep.inbag=TRUE, data=ranger_train_df, mtry=2, min.node.size=5)  # using mtry and min.node.size tuned by caret
+  noxn~., keep.inbag=TRUE, data=ranger_train_df, mtry=2, min.node.size=5,
+  importance='impurity')  # using mtry and min.node.size tuned by caret
 
 output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/R_ranger_pred"
 dir.create(output_dir, showWarnings=FALSE)
