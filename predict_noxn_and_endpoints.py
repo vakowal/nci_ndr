@@ -36,12 +36,27 @@ _BASE_DATA_PATH_DICT = {
 
 # n export rasters for a set of scenarios: each must be aggregated up to
 # approximately 5 arc min resolution, each must have a unique basename
-_N_EXPORT_PATH_DICT = {
-    'baseline': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_baseline_napp_rate_global_md5_b210146a5156422041eb7128c147512f.tif",
-    'ag_expansion': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_ag_expansion_global_md5_ea15fb82df52d49a1d0c4ffe197cdd0d.tif",
-    'ag_intensification': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_ag_intensification_global_md5_2734116e8c452f4c484ebcb574aab665.tif",
-    'restoration': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_restoration_napp_rate_global_md5_7f9ddf313e414a68cbb8ba204101b190.tif",
-}
+# _N_EXPORT_PATH_DICT = {
+#     'baseline': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_baseline_napp_rate_global_md5_b210146a5156422041eb7128c147512f.tif",
+#     'ag_expansion': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_ag_expansion_global_md5_ea15fb82df52d49a1d0c4ffe197cdd0d.tif",
+#     'ag_intensification': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_ag_intensification_global_md5_2734116e8c452f4c484ebcb574aab665.tif",
+#     'restoration': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_restoration_napp_rate_global_md5_7f9ddf313e414a68cbb8ba204101b190.tif",
+# }
+# file prefix identifying the baseline scenario
+_N_EXPORT_BASELINE_KEY = 'fixedarea_currentpractices'
+_N_EXPORT_PATH_LIST = [
+    'extensification_bmps_irrigated_',
+    'extensification_bmps_rainfed_',
+    'extensification_current_practices_',
+    'extensification_intensified_irrigated_',
+    'extensification_intensified_rainfed_',
+    'fixedarea_currentpractices',
+    'fixedarea_bmps_irrigated_',
+    'fixedarea_bmps_rainfed_',
+    'fixedarea_intensified_irrigated_',
+    'fixedarea_intensified_rainfed_',
+    'global_potential_vegetation_',
+]
 
 # directory to hold temporary outputs
 _PROCESSING_DIR = None
@@ -614,6 +629,156 @@ def calc_endpoints(noxn_dir, output_dir):
         shutil.rmtree(aligned_dir)
 
 
+def calc_masked_scenario_noxn(
+        scenario_noxn_path, scenario_se_path, baseline_noxn_path,
+        baseline_se_path, sig_diff_scenario_path, sig_diff_filled_path):
+    """Generate raster of noxn masked by significant difference from baseline.
+
+    Use standard error of prediction for noxn in scenario and baseline to
+    identify areas where the scenario is significantly different from baseline
+    (i.e., where confidence intervals of the scenario and baseline do not
+    overlap). Create two masked versions of the predicted noxn for the
+    scenario: one where areas in the scenario raster where confidence intervals
+    overlap are set to nodata, and one where areas in the scenario raster where
+    confidence intervals overlap are filled with baseline noxn values.
+
+    Parameters:
+        scenario_noxn_path (string): path to raster containing predicted
+            nitrate according to the scenario
+        scenario_se_path (string): path to raster containing standard error
+            estimate for the scenario
+        baseline_noxn_path (string) path to raster containing predicted
+            nitrate according to baseline
+        baseline_se_path (string): path to raster containing standard error
+            estimate for baseline
+        sig_diff_scenario_path (string): path to location to save raster
+            containing noxn for the scenario only in areas where the scenario
+            is significantly different from baseline
+        sig_diff_filled_path (string): path to location to save raster
+            containing noxn for the scenario only in areas where the scenario
+            is significantly different from baseline, other areas filled with
+            baseline values
+
+    Side effects:
+        creates a raster at `sig_diff_scenario_path`
+        creates a raster at `sig_diff_filled_path`
+
+    Returns:
+        None
+
+    """
+    def sig_diff_masked_op(
+            scenario_mean, scenario_se, baseline_mean, baseline_se):
+        """Restrict scenario mean to areas of sig difference from baseline."""
+        valid_mask = (
+            (~numpy.isclose(scenario_mean, noxn_nodata)) &
+            (~numpy.isclose(scenario_se, se_nodata)) &
+            (~numpy.isclose(baseline_mean, noxn_nodata)) &
+            (~numpy.isclose(baseline_se, se_nodata)))
+
+        scenario_lower_ci = numpy.empty(
+            scenario_mean.shape, dtype=numpy.float32)
+        scenario_lower_ci[:] = _TARGET_NODATA
+        scenario_lower_ci[valid_mask] = (
+            scenario_mean[valid_mask] - 1.96 * scenario_se[valid_mask])
+        scenario_upper_ci = numpy.empty(
+            scenario_mean.shape, dtype=numpy.float32)
+        scenario_upper_ci[:] = _TARGET_NODATA
+        scenario_upper_ci[valid_mask] = (
+            scenario_mean[valid_mask] + 1.96 * scenario_se[valid_mask])
+
+        baseline_lower_ci = numpy.empty(
+            baseline_mean.shape, dtype=numpy.float32)
+        baseline_lower_ci[:] = _TARGET_NODATA
+        baseline_lower_ci[valid_mask] = (
+            baseline_mean[valid_mask] - 1.96 * baseline_se[valid_mask])
+        baseline_upper_ci = numpy.empty(
+            baseline_mean.shape, dtype=numpy.float32)
+        baseline_upper_ci[:] = _TARGET_NODATA
+        baseline_upper_ci[valid_mask] = (
+            baseline_mean[valid_mask] + 1.96 * baseline_se[valid_mask])
+
+        result = numpy.empty(scenario_mean.shape, dtype=numpy.int32)
+        result[:] = _TARGET_NODATA
+        sig_smaller_mask = (
+            (scenario_upper_ci < baseline_lower_ci) &
+            valid_mask)
+        sig_larger_mask = (
+            (scenario_lower_ci > baseline_upper_ci) &
+            valid_mask)
+        result[sig_smaller_mask] = scenario_mean[sig_smaller_mask]
+        result[sig_larger_mask] = scenario_mean[sig_larger_mask]
+        return result
+
+    def sig_diff_filled_op(
+            scenario_mean, scenario_se, baseline_mean, baseline_se):
+        """Fill nonsignificantly different areas with baseline mean."""
+        valid_mask = (
+            (~numpy.isclose(scenario_mean, noxn_nodata)) &
+            (~numpy.isclose(scenario_se, se_nodata)) &
+            (~numpy.isclose(baseline_mean, noxn_nodata)) &
+            (~numpy.isclose(baseline_se, se_nodata)))
+
+        scenario_lower_ci = numpy.empty(
+            scenario_mean.shape, dtype=numpy.float32)
+        scenario_lower_ci[:] = _TARGET_NODATA
+        scenario_lower_ci[valid_mask] = (
+            scenario_mean[valid_mask] - 1.96 * scenario_se[valid_mask])
+        scenario_upper_ci = numpy.empty(
+            scenario_mean.shape, dtype=numpy.float32)
+        scenario_upper_ci[:] = _TARGET_NODATA
+        scenario_upper_ci[valid_mask] = (
+            scenario_mean[valid_mask] + 1.96 * scenario_se[valid_mask])
+
+        baseline_lower_ci = numpy.empty(
+            baseline_mean.shape, dtype=numpy.float32)
+        baseline_lower_ci[:] = _TARGET_NODATA
+        baseline_lower_ci[valid_mask] = (
+            baseline_mean[valid_mask] - 1.96 * baseline_se[valid_mask])
+        baseline_upper_ci = numpy.empty(
+            baseline_mean.shape, dtype=numpy.float32)
+        baseline_upper_ci[:] = _TARGET_NODATA
+        baseline_upper_ci[valid_mask] = (
+            baseline_mean[valid_mask] + 1.96 * baseline_se[valid_mask])
+
+        result = numpy.empty(scenario_mean.shape, dtype=numpy.int32)
+        result[:] = _TARGET_NODATA
+        result[valid_mask] = baseline_mean[valid_mask]  # fill with baseline
+        sig_smaller_mask = (
+            (scenario_upper_ci < baseline_lower_ci) &
+            valid_mask)
+        sig_larger_mask = (
+            (scenario_lower_ci > baseline_upper_ci) &
+            valid_mask)
+        result[sig_smaller_mask] = scenario_mean[sig_smaller_mask]
+        result[sig_larger_mask] = scenario_mean[sig_larger_mask]
+        return result
+
+    noxn_nodata = pygeoprocessing.get_raster_info(
+        scenario_noxn_path)['nodata'][0]
+    assert pygeoprocessing.get_raster_info(
+        baseline_noxn_path)['nodata'][0] == noxn_nodata, (
+        "Input noxn rasters must share nodata value")
+    se_nodata = pygeoprocessing.get_raster_info(
+        scenario_se_path)['nodata'][0]
+    assert pygeoprocessing.get_raster_info(
+        baseline_se_path)['nodata'][0] == se_nodata, (
+        "Input se rasters must share nodata value")
+
+    pygeoprocessing.raster_calculator(
+        [(path, 1) for path in [
+            scenario_noxn_path, scenario_se_path,
+            baseline_noxn_path, baseline_se_path]],
+        sig_diff_masked_op, sig_diff_scenario_path, gdal.GDT_Float32,
+        _TARGET_NODATA)
+    pygeoprocessing.raster_calculator(
+        [(path, 1) for path in [
+            scenario_noxn_path, scenario_se_path,
+            baseline_noxn_path, baseline_se_path]],
+        sig_diff_filled_op, sig_diff_filled_path, gdal.GDT_Float32,
+        _TARGET_NODATA)
+
+
 def predict_noxn_and_endpoints():
     """Predict noxn in surface and groundwater, and calculate endpoints.
 
@@ -682,10 +847,93 @@ def confidence_interval_wrapper():
             ground_noxn_path, ground_noxn_se_path, output_dir, basename)
 
 
+def ground_ci_wrapper():
+    """Generate confidence intervals from ground noxn including India+China."""
+    noxn_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/ground_GEMStat+India+China/R_ranger_pred"
+    output_dir = noxn_dir
+    scenario_key = 'baseline'
+    ground_noxn_path = os.path.join(
+        noxn_dir, 'ground_noxn_{}.tif'.format(scenario_key))
+    ground_noxn_se_path = os.path.join(
+        noxn_dir, 'ground_noxn_se_{}.tif'.format(scenario_key))
+    basename = 'ground_{}'.format(scenario_key)
+    generate_confidence_intervals(
+        ground_noxn_path, ground_noxn_se_path, output_dir, basename)
+
+
+def masked_endpoints_workflow():
+    """Generate endpoints for scenarios according to sig diff from baseline.
+
+    For each scenario in _N_EXPORT_PATH_LIST, calculate estimated cancer cases
+    and water treatment costs. Restrict predicted nitrate in surface and ground
+    water for each scenario to be equal to baseline estimates, except in cases
+    where predicted nitrate is significantly different from baseline according
+    to standard error of the estimate.
+
+    Side effects:
+        creates the following rasters for each scenario:
+            nitrate in drinking water
+            cancer cases
+            abatement costs
+
+    Returns:
+        None
+
+    """
+    # directory containing mean and se predictions
+    predicted_noxn_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred"
+    # directory containing noxn from which to calc endpoints
+    sig_diff_filled_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/sig_diff_filled_noxn"
+    if not os.path.exists(sig_diff_filled_dir):
+        os.makedirs(sig_diff_filled_dir)
+    # directory containing scenario noxn only in areas significantly different
+    # from baseline
+    sig_diff_masked_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/sig_diff_masked_scenario_noxn"
+    if not os.path.exists(sig_diff_masked_dir):
+        os.makedirs(sig_diff_masked_dir)
+    # directory containing endpoints
+    endpoint_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/endpoints"
+    if not os.path.exists(endpoint_dir):
+        os.makedirs(endpoint_dir)
+    for fraction in ['surface', 'ground']:
+        baseline_noxn_path = os.path.join(
+            predicted_noxn_dir, '{}_noxn_{}.tif'.format(
+                fraction, _N_EXPORT_BASELINE_KEY))
+        baseline_se_path = os.path.join(
+            predicted_noxn_dir, '{}_noxn_se_{}.tif'.format(
+                fraction, _N_EXPORT_BASELINE_KEY))
+        # copy baseline noxn to sig_diff_filled_dir
+        shutil.copyfile(
+            baseline_noxn_path, os.path.join(
+                sig_diff_filled_dir, '{}_noxn_{}.tif'.format(
+                    fraction, _N_EXPORT_BASELINE_KEY)))
+        for scenario_key in _N_EXPORT_PATH_LIST:
+            if scenario_key == _N_EXPORT_BASELINE_KEY:
+                continue  # no need to calculate masked scenario for baseline
+            scenario_noxn_path = os.path.join(
+                predicted_noxn_dir, '{}_noxn_{}.tif'.format(
+                    fraction, scenario_key))
+            scenario_se_path = os.path.join(
+                predicted_noxn_dir,
+                '{}_noxn_se_{}.tif'.format(fraction, scenario_key))
+            sig_diff_scenario_path = os.path.join(
+                sig_diff_masked_dir, '{}_noxn_{}.tif'.format(
+                    fraction, scenario_key))
+            sig_diff_filled_path = os.path.join(
+                sig_diff_filled_dir, '{}_noxn_{}.tif'.format(
+                    fraction, scenario_key))
+            calc_masked_scenario_noxn(
+                scenario_noxn_path, scenario_se_path, baseline_noxn_path,
+                baseline_se_path, sig_diff_scenario_path, sig_diff_filled_path)
+    calc_endpoints(sig_diff_filled_dir, endpoint_dir)
+
+
 def main():
     """Program entry point."""
     # predict_endpoints_only()
-    confidence_interval_wrapper()
+    # confidence_interval_wrapper()
+    # ground_ci_wrapper()
+    masked_endpoints_workflow()
 
 
 if __name__ == '__main__':

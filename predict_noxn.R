@@ -22,12 +22,18 @@ COVAR_PATH_LIST <- list(
 
 # aligned n export rasters for a set of scenarios
 N_EXPORT_PATH_LIST = list(
-  'baseline'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_baseline_napp_rate_global_md5_b210146a5156422041eb7128c147512f.tif",
-  'ag_expansion'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_ag_expansion_global_md5_ea15fb82df52d49a1d0c4ffe197cdd0d.tif",
-  'ag_intensification'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_ag_intensification_global_md5_2734116e8c452f4c484ebcb574aab665.tif",
-  'restoration'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_restoration_napp_rate_global_md5_7f9ddf313e414a68cbb8ba204101b190.tif"
+  'extensification_bmps_irrigated_'= ,
+  'extensification_bmps_rainfed_'= ,
+  'extensification_current_practices_'= ,
+  'extensification_intensified_irrigated_'= ,
+  'extensification_intensified_rainfed_'= ,
+  'fixedarea_currentpractices'= ,
+  'fixedarea_bmps_irrigated_'= ,
+  'fixedarea_bmps_rainfed_'= ,
+  'fixedarea_intensified_irrigated_'= ,
+  'fixedarea_intensified_rainfed_'= ,
+  'global_potential_vegetation_'= 
 )
-
 # Use random foresets model to predict se from a raster stack
 predict_se <- function(covar_stack, model, save_as) {
   out <- raster(covar_stack, layer=0)
@@ -144,9 +150,9 @@ ranger_train_df <- train_df[complete.cases(train_df), ]
 ranger_model <- ranger(noxn~., keep.inbag=TRUE, data=ranger_train_df,
                        mtry=2, min.node.size=5, importance='impurity')  # using mtry and min.node.size tuned by caret
 
-output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/R_ranger_pred"
+output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred"
 dir.create(output_dir, showWarnings=FALSE)
-intermediate_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate"
+intermediate_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred/surf_intermediate"
 covariate_df <- subset(train_df, select=-c(noxn))
 covariate_name_list <- colnames(covariate_df)
 for (scenario in names(N_EXPORT_PATH_LIST)) {
@@ -161,8 +167,15 @@ for (scenario in names(N_EXPORT_PATH_LIST)) {
 }
 
 # ground noxn
-# noxn and covariate observations for ground water
-NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_gr.csv"
+# noxn and covariate observations for ground water (GEMStat only)
+# NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_gr.csv"
+# noxn and covariates for groundwater, GEMStat + India + China data combined
+# NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/noxn_predictor_df_gr_India_China_GEMStat.csv"
+# GEMStat + China data combined
+# NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/noxn_predictor_df_gr_China_GEMStat.csv"
+# GEMStat, China, and India aggregated to pixel scale
+# NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/noxn_predictor_df_gr_IndiaPixel_China_GEMStat.csv"
+NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/noxn_predictor_df_gr_USGS_China_GEMStat.csv"
 
 # train the random forest model
 train_df <- read.csv(NOXN_PREDICTOR_GR_DF_PATH)
@@ -171,9 +184,10 @@ ranger_ground_model <- ranger(
   noxn~., keep.inbag=TRUE, data=ranger_train_df, mtry=2, min.node.size=5,
   importance='impurity')  # using mtry and min.node.size tuned by caret
 
-output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/R_ranger_pred"
-dir.create(output_dir, showWarnings=FALSE)
-intermediate_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate"
+output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred"
+dir.create(output_dir, recursive=TRUE, showWarnings=FALSE)
+intermediate_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred/ground_intermediate"
+dir.create(intermediate_dir, recursive=TRUE, showWarnings=FALSE)
 covariate_df <- subset(train_df, select=-c(noxn))
 covariate_name_list <- colnames(covariate_df)
 for (scenario in names(N_EXPORT_PATH_LIST)) {

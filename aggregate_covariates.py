@@ -23,7 +23,15 @@ import pandas
 import taskgraph
 
 # shapefile containing groundwater monitoring stations with NOxN observations
-_GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data worldbank/station_data/WB_groundwater_stations_noxn_obs.shp"
+# _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data worldbank/station_data/WB_groundwater_stations_noxn_obs.shp"
+# shapefile containing groundwater locations from India data
+# _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data worldbank/India_groundwater/wells.shp"
+# shapefile containing groundwater locations from China data
+# _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data groundwater Gu et al/noxn_observation_locations.shp"
+# shapefile with mean noxn value per 5min pixel, India data
+# _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data worldbank/India_groundwater/mean_noxn_5min_centroid.shp"
+# shapefile with groundwater locations, USGS data
+# _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data groundwater USGS/Decadal_change_in_groundwater_NO3N_datav2.shp"
 
 # shapefile containing locations of snapped stations with NOxN observations
 _SNAPPED_STATION_SHP_PATH = "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_for_snapping_snapped.shp"
@@ -43,7 +51,7 @@ _DATA_DIR = "F:/NCI_NDR"
 
 # covariate datasets, native resolution
 _COVARIATE_PATH_DICT = {
-    'n_export': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_baseline_napp_rate_global_md5_b210146a5156422041eb7128c147512f.tif",
+    'n_export': "",
     'average_flow': "F:/NCI_NDR/Data streamflow FLO1K/average_flow_1990_2015.tif",
     'flash_flow': "F:/NCI_NDR/Data streamflow FLO1K/mean_div_range_1990_2015.tif",
     'precip_variability': "F:/NCI_NDR/Data precip Worldclim/wc2.0_bio_5m_15.tif",
@@ -771,7 +779,30 @@ def collect_surface_covariates_basin():
 
 def collect_groundwater_covariates_orig():
     """Aggregate covariates from piixel containing groundwater stations."""
+    # out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/India_groundwater_5min_pixel'
+    # out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/India_groundwater_pixel_centroid_5min_pixel'
+    _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data worldbank/station_data/WB_groundwater_stations_noxn_obs.shp"
     out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_groundwater_station_orig_5min_pixel'
+    intermediate_dir_path = os.path.join(
+        out_dir, 'intermediate_df_dir')
+    combined_covariate_table_path = os.path.join(
+        out_dir, 'combined_covariates.csv')
+    collect_covariates_5min(
+        _GROUNDWATER_STATION_SHP_PATH, intermediate_dir_path,
+        combined_covariate_table_path, groundwater=True)
+
+    _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data groundwater Gu et al/noxn_observation_locations.shp"
+    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/China_groundwater_5min_pixel'
+    intermediate_dir_path = os.path.join(
+        out_dir, 'intermediate_df_dir')
+    combined_covariate_table_path = os.path.join(
+        out_dir, 'combined_covariates.csv')
+    collect_covariates_5min(
+        _GROUNDWATER_STATION_SHP_PATH, intermediate_dir_path,
+        combined_covariate_table_path, groundwater=True)
+
+    _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data groundwater USGS/Decadal_change_in_groundwater_NO3N_datav2.shp"
+    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/USGS_groundwater_5min_pixel'
     intermediate_dir_path = os.path.join(
         out_dir, 'intermediate_df_dir')
     combined_covariate_table_path = os.path.join(
