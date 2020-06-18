@@ -11,6 +11,55 @@ FERT_PERC_CHANGE_CSV_GR <- "F:/NCI_NDR/Data fertilizer Lu Tian/perc_change_fert_
 OBJECTID_MATCH_CSV <- "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_objectid_stnid_match_table.csv"
 STN_OBJ_MATCH_DF <- read.csv(OBJECTID_MATCH_CSV)
 
+# download and process soil composition rasters from SoilGrids
+# from this resource: https://www.isric.org/explore/soilgrids/soilgrids-access
+# seemed like a good idea, but it failed at the final step (use gdal_translate to export to GTiff)
+# so I did the final step in QGIS
+library(rgdal)
+library(gdalUtils)
+
+globe_bbox <- c(-20037500, -6729000, 20037500, 8600750) # global bounding box in Homolosine
+spatial_reference_system <- '+proj=igh +lat_0=0 +lon_0=0 +datum=WGS84 +units=m +no_defs' # proj string for Homolosine projection
+
+isric_path_list <- c('clay/clay_0-5cm_mean.vrt', 'sand/sand_0-5cm_mean.vrt')
+path <- isric_path_list[[2]]
+src_path <- paste(
+  '/vsicurl?max_retry=3&retry_delay=1&list_dir=no&url=https://files.isric.org/soilgrids/latest/data',
+  path, sep='/')
+# native_res_path <- 'F:/NCI_NDR/Data soil ISRIC/resolution_250m/clay/clay_0-5cm_mean.tif'
+native_res_path <- 'F:/NCI_NDR/Data soil ISRIC/resolution_250m/sand/sand_0-5cm_mean.tif'
+if (!file.exists(native_res_path)) {
+  # obtain a VRT (GDAL virtual format raster) from ISRIC
+  gdal_translate(
+    src_path,  # source dataset
+    "./crop_roi_igh_r.vrt",  # destination dataset
+    of="VRT",  # output format
+    tr=c(250, 250),  # target resolution, in georeferenced units
+    # projwin=globe_bbox,  # bounding box
+    # projwin_srs=spatial_reference_system,
+    verbose=TRUE
+  )
+  
+  # project to lat/long
+  gdalwarp(
+    "./crop_roi_igh_r.vrt",
+    "./crop_roi_ll_r_sand.vrt",
+    s_src=spatial_reference_system, 
+    t_srs="EPSG:4326", 
+    of="VRT")
+  
+  # export to GeoTiff
+  # this didn't work, so I did it in QGIS
+  gdal_translate(
+    src_dataset="./crop_roi_ll_r.vrt",  
+    dst_dataset=native_res_path,
+    # co=c("TILED=YES","COMPRESS=DEFLATE","PREDICTOR=2","BIGTIFF=YES"),
+    verbose=TRUE)
+}
+
+# aggregate 250 m soilGrids rasters
+clay_path <- 'F:/NCI_NDR/Data soil ISRIC/resolution_250m/clay/clay_0-5cm_mean.tif'
+
 # generate aligned raster of pixel area values, for calculating area of watersheds
 # aligned with DEM that was used to delineate the watersheds
 template_raster_path <- "F:/NCI_NDR/Data flow direction DRT/globe_dem_shedsandh1k.asc"
@@ -35,6 +84,18 @@ success_subs <- basin_area_square_km_df[
     basin_area_square_km_df$abs_perc_diff < 0.2), ]
 dim(success_subs)  # 305 stations have area within 50% of reported size
 write.csv(basin_area_square_km_df, "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/compare_basin_area_calc_v_reported.csv")
+
+# resample n_load raster up to 5 min resolution
+target_pixel_size <- 0.08333333333333332871  # 5 min
+n_load_10s_tif <- "C:/Users/ginge/Desktop/n_load_inputs/n_load_natveg_ag.tif"
+n_load_5min_tif <- "C:/Users/ginge/Desktop/n_load_inputs/n_load_natveg_ag_5min.tif"
+in_ras <- raster(n_load_10s_tif)
+in_pixel_size = xres(in_ras) 
+aggregate_factor = round(target_pixel_size / in_pixel_size)
+agg_ras <- aggregate(
+  in_ras, fact=aggregate_factor, fun=sum, expand=TRUE, na.rm=TRUE)
+out_ras <- reclassify(agg_ras, cbind(NA, -9999))
+writeRaster(out_ras, filename=n_load_5min_tif, NAflag=-9999)
 
 # resample NDR outputs to 5min resolution with block statistics
 target_pixel_size <- 0.08333333333333332871  # 5 min
