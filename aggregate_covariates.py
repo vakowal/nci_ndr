@@ -22,17 +22,6 @@ import numpy
 import pandas
 import taskgraph
 
-# shapefile containing groundwater monitoring stations with NOxN observations
-# _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data worldbank/station_data/WB_groundwater_stations_noxn_obs.shp"
-# shapefile containing groundwater locations from India data
-# _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data worldbank/India_groundwater/wells.shp"
-# shapefile containing groundwater locations from China data
-# _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data groundwater Gu et al/noxn_observation_locations.shp"
-# shapefile with mean noxn value per 5min pixel, India data
-# _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data worldbank/India_groundwater/mean_noxn_5min_centroid.shp"
-# shapefile with groundwater locations, USGS data
-# _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data groundwater USGS/Decadal_change_in_groundwater_NO3N_datav2.shp"
-
 # shapefile containing locations of snapped stations with NOxN observations
 _SNAPPED_STATION_SHP_PATH = "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stations_noxn_for_snapping_snapped.shp"
 
@@ -46,12 +35,12 @@ _BASIN_SHP_PATH = "F:/NCI_NDR/Watersheds_DRT/Rafa_watersheds_v3/WB_surface_stati
 # shapefile containing watershed centroids
 _BASIN_CENTROID_PATH = "F:/NCI_NDR/Data Hydrosheds/basin outlines/centroid_world_bas_15s_beta.shp"
 
-# outer data directory
-_DATA_DIR = "F:/NCI_NDR"
+_COVARIATE_PATH_DICT = None
 
-# covariate datasets, native resolution
-_COVARIATE_PATH_DICT = {
-    'n_export': "",
+# covariate datasets, 5 min resolution
+_COVARIATE_PATH_DICT_5min = {
+    'n_export': "F:/NCI_NDR/Data NDR/updated_5.18.20/sum_aggregate_to_0.084100_n_export_fixedarea_currentpractices_global.tif",
+    # 'n_export': "F:/NCI_NDR/Data NDR/updated_5.18.20/n_load_inputs/n_load_natveg_ag_5min.tif",
     'average_flow': "F:/NCI_NDR/Data streamflow FLO1K/average_flow_1990_2015.tif",
     'flash_flow': "F:/NCI_NDR/Data streamflow FLO1K/mean_div_range_1990_2015.tif",
     'precip_variability': "F:/NCI_NDR/Data precip Worldclim/wc2.0_bio_5m_15.tif",
@@ -59,9 +48,9 @@ _COVARIATE_PATH_DICT = {
     'irrigated_area': "F:/NCI_NDR/Data irrigation HYDE3.2/tot_irri_avg_1990_2015.tif",
     'area': "F:/NCI_NDR/Data irrigation HYDE3.2/tot_irri_pixel_area_km2.tif",
     'population': "F:/NCI_NDR/Data population HYDE3.2/inhabitants_avg_1990_2015.tif",
-    'urban_extent_rc': "F:/NCI_NDR/Data urban extent GRUMP/glurextents_rc.tif",
+    'urban_extent_rc': "F:/NCI_NDR/Data urban extent GRUMP/perc_urban_5min.tif",
     'sanitation_table': "F:/NCI_NDR/Data sanitation/no_sanitation_provision_avg_2000-2015.csv",
-    'countries_raster': "F:/NCI_NDR/Data world borders/TM_WORLD_BORDERS-03_countryid.tif",
+    'countries_raster': "F:/NCI_NDR/Data world borders/TM_WORLD_BORDERS-03_countryid_5min.tif",
     'depth_to_groundwater': "F:/NCI_NDR/Data HydroATLAS/gwt_cm_sav_level12.tif",
     'clay_percent': "F:/NCI_NDR/Data soil ISRIC/CLYPPT_M_sl1_10km_ll.tif",
     'sand_percent': "F:/NCI_NDR/Data soil ISRIC/SNDPPT_M_sl1_10km_ll.tif",
@@ -69,11 +58,25 @@ _COVARIATE_PATH_DICT = {
     'pigs': "F:/NCI_NDR/Data GLW/5_Pg_2010_Da.tif",
 }
 
-# path to % urban covariate at 5 min resolution
-_URBAN_5MIN_PATH = "F:/NCI_NDR/Data urban extent GRUMP/perc_urban_5min.tif"
-
-# path to countries raster at 5 min resolution
-_COUNTRIES_5MIN_PATH = "F:/NCI_NDR/Data world borders/TM_WORLD_BORDERS-03_countryid_5min.tif"
+# covariate datasets, 30 sec resolution when possible
+_COVARIATE_PATH_DICT_30s = {
+    'n_export': "",
+    'average_flow': "",
+    'flash_flow': "",
+    'precip_variability': "F:/NCI_NDR/Data precip Worldclim/wc2.1_30s_bio_15.tif",
+    'climate_zones': "F:/NCI_NDR/Data climate zones Koeppen-Geiger/5min_updated/Map_KG-Global/KG_1986-2010.tif",
+    'irrigated_area': "F:/NCI_NDR/Data irrigation HYDE3.2/tot_irri_avg_1990_2015.tif",
+    'area': "F:/NCI_NDR/Data irrigation HYDE3.2/tot_irri_pixel_area_km2.tif",
+    'population': "F:/NCI_NDR/Data population HYDE3.2/inhabitants_avg_1990_2015.tif",
+    'urban_extent_rc': "F:/NCI_NDR/Data urban extent GRUMP/glurextents_rc.tif",
+    'sanitation_table': "F:/NCI_NDR/Data sanitation/no_sanitation_provision_avg_2000-2015.csv",
+    'countries_raster': "F:/NCI_NDR/Data world borders/TM_WORLD_BORDERS-03_countryid.tif",
+    'depth_to_groundwater': "F:/NCI_NDR/Data HydroATLAS/gwt_cm_sav_level12_30s.tif",
+    'clay_percent': "F:/NCI_NDR/Data soil ISRIC/resolution_250m/clay/clay_0-5cm_mean.tif",
+    'sand_percent': "F:/NCI_NDR/Data soil ISRIC/resolution_250m/sand/sand_0-5cm_mean.tif",
+    'cattle': "F:/NCI_NDR/Data GLW/5_Ct_2010_Da.tif",
+    'pigs': "F:/NCI_NDR/Data GLW/5_Pg_2010_Da.tif",
+}
 
 
 def zonal_sum_to_csv(input_raster_path, sum_field_name, save_as):
@@ -374,7 +377,12 @@ def raster_values_at_points(
         None
 
     """
-    raster_nodata = pygeoprocessing.get_raster_info(raster_path)['nodata'][0]
+    try:
+        raster_nodata = pygeoprocessing.get_raster_info(
+            raster_path)['nodata'][0]
+    except ValueError:
+        print("Raster does not exist: {}".format(raster_path))
+        return
     point_vector = ogr.Open(point_shp_path)
     point_layer = point_vector.GetLayer()
     point_defn = point_layer.GetLayerDefn()
@@ -581,10 +589,10 @@ def aggregate_covariates(
     shutil.rmtree(temp_dir)
 
 
-def collect_covariates_5min(
+def collect_covariates_from_rasters(
         point_shp_path, intermediate_dir_path, combined_covariate_table_path,
         groundwater=None):
-    """Extract covariate values at station points from 5min resolution rasters.
+    """Extract covariate values at station points from rasters.
 
     Parameters:
         point_shp_path (string): path to shapefile containing points features
@@ -647,19 +655,6 @@ def collect_covariates_5min(
             point_shp_path, _COVARIATE_PATH_DICT['precip_variability'], 1,
             'precip_variability', precip_variability_path)
 
-    climate_zone_path = os.path.join(intermediate_dir_path, 'climate_zone.csv')
-    df_path_list.append(climate_zone_path)
-    if not os.path.exists(climate_zone_path):
-        raster_values_at_points(
-            point_shp_path, _COVARIATE_PATH_DICT['climate_zones'], 1,
-            'climate_zone', climate_zone_path)
-
-    irrigated_area_path = os.path.join(
-        intermediate_dir_path, 'irrigated_area.csv')
-    df_path_list.append(irrigated_area_path)
-    if not os.path.exists(irrigated_area_path):
-        proportion_irrigation_at_point(point_shp_path, irrigated_area_path)
-
     population_path = os.path.join(intermediate_dir_path, 'population.csv')
     df_path_list.append(population_path)
     if not os.path.exists(population_path):
@@ -671,14 +666,15 @@ def collect_covariates_5min(
     df_path_list.append(urban_extent_path)
     if not os.path.exists(urban_extent_path):
         raster_values_at_points(
-            point_shp_path, _URBAN_5MIN_PATH, 1, 'proportion_urban',
-            urban_extent_path)
+            point_shp_path, _COVARIATE_PATH_DICT['urban_extent_rc'], 1,
+            'proportion_urban', urban_extent_path)
 
     sanitation_path = os.path.join(intermediate_dir_path, 'sanitation.csv')
     df_path_list.append(sanitation_path)
     if not os.path.exists(sanitation_path):
         reclassify_countries_by_sanitation(
-            _COUNTRIES_5MIN_PATH, temp_val_dict['sanitation'])
+            _COVARIATE_PATH_DICT['countries_raster'],
+            temp_val_dict['sanitation'])
         raster_values_at_points(
             point_shp_path, temp_val_dict['sanitation'], 1,
             'percent_no_sanitation', sanitation_path)
@@ -737,8 +733,8 @@ def n_fert_at_points():
     pt_shp_path = "F:/NCI_NDR/Data worldbank/station_data/WB_surface_stations_noxn_obs_objectid_shift_to_lu_tian.shp"
     summarize_n_fert_at_points(pt_shp_path, n_fert_surface_stn_csv)
     n_fert_groundwater_stn_csv = "F:/NCI_NDR/Data fertilizer Lu Tian/N_by_OBJECTID_WB_groundwater_stations_noxn_obs.csv"
-    # summarize_n_fert_at_points(
-        # _GROUNDWATER_STATION_SHP_PATH, n_fert_groundwater_stn_csv)
+    summarize_n_fert_at_points(
+        _GROUNDWATER_STATION_SHP_PATH, n_fert_groundwater_stn_csv)
 
 
 def collect_surface_covariates_points_snapped():
@@ -748,19 +744,23 @@ def collect_surface_covariates_points_snapped():
         out_dir, 'intermediate_df_dir')
     combined_covariate_table_path = os.path.join(
         out_dir, 'combined_covariates.csv')
-    collect_covariates_5min(
+    collect_covariates_from_rasters(
         _SNAPPED_STATION_SHP_PATH, intermediate_dir_path,
         combined_covariate_table_path)
 
 
-def collect_surface_covariates_points_orig():
+def collect_surface_covariates_points_orig(out_dir, resolution='5min'):
     """Aggregate covariates from the pixel containing the original station."""
-    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_5min_pixel'
     intermediate_dir_path = os.path.join(
         out_dir, 'intermediate_df_dir')
     combined_covariate_table_path = os.path.join(
         out_dir, 'combined_covariates.csv')
-    collect_covariates_5min(
+    global _COVARIATE_PATH_DICT
+    if resolution == '30s':
+        _COVARIATE_PATH_DICT = _COVARIATE_PATH_DICT_30s
+    else:
+        _COVARIATE_PATH_DICT = _COVARIATE_PATH_DICT_5min
+    collect_covariates_from_rasters(
         _ORIG_STATION_SHP_PATH, intermediate_dir_path,
         combined_covariate_table_path)
 
@@ -777,45 +777,31 @@ def collect_surface_covariates_basin():
         combined_covariate_table_path)
 
 
-def collect_groundwater_covariates_orig():
+def collect_groundwater_covariates_orig(out_dir, resolution='5min'):
     """Aggregate covariates from piixel containing groundwater stations."""
-    # out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/India_groundwater_5min_pixel'
-    # out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/India_groundwater_pixel_centroid_5min_pixel'
-    _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data worldbank/station_data/WB_groundwater_stations_noxn_obs.shp"
-    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_groundwater_station_orig_5min_pixel'
+    global _COVARIATE_PATH_DICT
+    if resolution == '30s':
+        _COVARIATE_PATH_DICT = _COVARIATE_PATH_DICT_30s
+    else:
+        _COVARIATE_PATH_DICT = _COVARIATE_PATH_DICT_5min
+
+    _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data groundwater merged/groundwater_GEMStat_Gu_USGS_Ouedraogo.shp"
     intermediate_dir_path = os.path.join(
         out_dir, 'intermediate_df_dir')
     combined_covariate_table_path = os.path.join(
         out_dir, 'combined_covariates.csv')
-    collect_covariates_5min(
+    collect_covariates_from_rasters(
         _GROUNDWATER_STATION_SHP_PATH, intermediate_dir_path,
         combined_covariate_table_path, groundwater=True)
-
-    _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data groundwater Gu et al/noxn_observation_locations.shp"
-    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/China_groundwater_5min_pixel'
-    intermediate_dir_path = os.path.join(
-        out_dir, 'intermediate_df_dir')
-    combined_covariate_table_path = os.path.join(
-        out_dir, 'combined_covariates.csv')
-    collect_covariates_5min(
-        _GROUNDWATER_STATION_SHP_PATH, intermediate_dir_path,
-        combined_covariate_table_path, groundwater=True)
-
-    _GROUNDWATER_STATION_SHP_PATH = "F:/NCI_NDR/Data groundwater USGS/Decadal_change_in_groundwater_NO3N_datav2.shp"
-    out_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/USGS_groundwater_5min_pixel'
-    intermediate_dir_path = os.path.join(
-        out_dir, 'intermediate_df_dir')
-    combined_covariate_table_path = os.path.join(
-        out_dir, 'combined_covariates.csv')
-    collect_covariates_5min(
-        _GROUNDWATER_STATION_SHP_PATH, intermediate_dir_path,
-        combined_covariate_table_path, groundwater=True)
-
 
 def main():
     """Program entry point."""
-    collect_surface_covariates_points_orig()
-    collect_groundwater_covariates_orig()
+    # surface_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_5min_pixel'
+    surface_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_30s_pixel'
+    collect_surface_covariates_points_orig(surface_outdir, resolution='30s')
+    # ground_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/groundwater_GEMStat_Gu_USGS_Ouedraogo'
+    ground_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/groundwater_GEMStat_Gu_USGS_Ouedraogo_30s_pixel'
+    collect_groundwater_covariates_orig(ground_outdir, resolution='30s')
 
 
 if __name__ == '__main__':
