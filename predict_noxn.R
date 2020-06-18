@@ -7,32 +7,32 @@ EXTENT_DF <- read.csv("C:/Users/ginge/Documents/Python/nci_ndr/extent_df.csv")
 
 # aligned covariate rasters
 COVAR_PATH_LIST <- list(
-  'precip_variability'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/wc2.0_bio_5m_15.tif",
-  'population'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/inhabitants_avg_1990_2015.tif",
-  'pigs'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/5_Pg_2010_Da.tif",
-  'cattle'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/5_Ct_2010_Da.tif",
-  'flash_flow'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/mean_div_range_1990_2015.tif",
-  'average_flow'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/average_flow_1990_2015.tif",
-  'percent_no_sanitation'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/no_sanitation_provision_avg_2000-2015.tif",
-  'proportion_urban'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/perc_urban_5min.tif",
-  'sand_percent'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/SNDPPT_M_sl1_10km_ll.tif",
-  'clay_percent'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/CLYPPT_M_sl1_10km_ll.tif",
-  'depth_to_groundwater'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.2.20/subset_2000_2015/intermediate/aligned_covariates_ground/gwt_cm_sav_level12.tif"
+  'precip_variability'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/wc2.0_bio_5m_15.tif",
+  'population'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/inhabitants_avg_1990_2015.tif",
+  'pigs'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/5_Pg_2010_Da.tif",
+  'cattle'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/5_Ct_2010_Da.tif",
+  'flash_flow'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/mean_div_range_1990_2015.tif",
+  'average_flow'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/average_flow_1990_2015.tif",
+  'percent_no_sanitation'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/no_sanitation_provision_avg_2000-2015.tif",
+  'proportion_urban'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/perc_urban_5min.tif",
+  'sand_percent'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/SNDPPT_M_sl1_10km_ll.tif",
+  'clay_percent'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/CLYPPT_M_sl1_10km_ll.tif",
+  'depth_to_groundwater'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/gwt_cm_sav_level12.tif"
   )
 
 # aligned n export rasters for a set of scenarios
 N_EXPORT_PATH_LIST = list(
-  'extensification_bmps_irrigated_'= ,
-  'extensification_bmps_rainfed_'= ,
-  'extensification_current_practices_'= ,
-  'extensification_intensified_irrigated_'= ,
-  'extensification_intensified_rainfed_'= ,
-  'fixedarea_currentpractices'= ,
-  'fixedarea_bmps_irrigated_'= ,
-  'fixedarea_bmps_rainfed_'= ,
-  'fixedarea_intensified_irrigated_'= ,
-  'fixedarea_intensified_rainfed_'= ,
-  'global_potential_vegetation_'= 
+  'extensification_bmps_irrigated_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_extensification_bmps_irrigated_global.tif",
+  'extensification_bmps_rainfed_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_extensification_bmps_rainfed_global.tif",
+  'extensification_current_practices_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_extensification_current_practices_global.tif",
+  'extensification_intensified_irrigated_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_extensification_intensified_irrigated_global.tif",
+  'extensification_intensified_rainfed_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_extensification_intensified_rainfed_global.tif",
+  'fixedarea_currentpractices'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_fixedarea_currentpractices_global.tif",
+  'fixedarea_bmps_irrigated_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_fixedarea_bmps_irrigated_global.tif",
+  'fixedarea_bmps_rainfed_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_fixedarea_bmps_rainfed_global.tif",
+  'fixedarea_intensified_irrigated_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_fixedarea_intensified_irrigated_global.tif",
+  'fixedarea_intensified_rainfed_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_fixedarea_intensified_rainfed_global.tif",
+  'global_potential_vegetation_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_global_potential_vegetation_global.tif"
 )
 # Use random foresets model to predict se from a raster stack
 predict_se <- function(covar_stack, model, save_as) {
@@ -151,8 +151,9 @@ ranger_model <- ranger(noxn~., keep.inbag=TRUE, data=ranger_train_df,
                        mtry=2, min.node.size=5, importance='impurity')  # using mtry and min.node.size tuned by caret
 
 output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred"
-dir.create(output_dir, showWarnings=FALSE)
+dir.create(output_dir, recursive=TRUE, showWarnings=FALSE)
 intermediate_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred/surf_intermediate"
+dir.create(intermediate_dir)
 covariate_df <- subset(train_df, select=-c(noxn))
 covariate_name_list <- colnames(covariate_df)
 for (scenario in names(N_EXPORT_PATH_LIST)) {
@@ -167,15 +168,8 @@ for (scenario in names(N_EXPORT_PATH_LIST)) {
 }
 
 # ground noxn
-# noxn and covariate observations for ground water (GEMStat only)
-# NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_gr.csv"
-# noxn and covariates for groundwater, GEMStat + India + China data combined
-# NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/noxn_predictor_df_gr_India_China_GEMStat.csv"
-# GEMStat + China data combined
-# NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/noxn_predictor_df_gr_China_GEMStat.csv"
-# GEMStat, China, and India aggregated to pixel scale
-# NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/noxn_predictor_df_gr_IndiaPixel_China_GEMStat.csv"
-NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/noxn_predictor_df_gr_USGS_China_GEMStat.csv"
+# GEMStat, China, USGS, and Ouedraogo (Africa) combined
+NOXN_PREDICTOR_GR_DF_PATH = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/noxn_predictor_df_gr_Ouedraogo_USGS_China_GEMStat.csv"
 
 # train the random forest model
 train_df <- read.csv(NOXN_PREDICTOR_GR_DF_PATH)
@@ -184,13 +178,13 @@ ranger_ground_model <- ranger(
   noxn~., keep.inbag=TRUE, data=ranger_train_df, mtry=2, min.node.size=5,
   importance='impurity')  # using mtry and min.node.size tuned by caret
 
-output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred"
+output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/Ouedraogo_USGS_China_GEMStat/R_ranger_pred"
 dir.create(output_dir, recursive=TRUE, showWarnings=FALSE)
-intermediate_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred/ground_intermediate"
+intermediate_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/Ouedraogo_USGS_China_GEMStat/R_ranger_pred/ground_intermediate"
 dir.create(intermediate_dir, recursive=TRUE, showWarnings=FALSE)
 covariate_df <- subset(train_df, select=-c(noxn))
 covariate_name_list <- colnames(covariate_df)
-for (scenario in names(N_EXPORT_PATH_LIST)) {
+for (scenario in c("fixedarea_currentpractices")) {  # names(N_EXPORT_PATH_LIST)) {  # TODO change back
   COVAR_PATH_LIST[['n_export']] = N_EXPORT_PATH_LIST[[scenario]]
   response_target_path <- paste(output_dir, paste(
     "ground_noxn_", scenario, ".tif", sep=''), sep='/')
