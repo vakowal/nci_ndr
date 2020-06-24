@@ -60,9 +60,9 @@ _COVARIATE_PATH_DICT_5min = {
 
 # covariate datasets, 30 sec resolution when possible
 _COVARIATE_PATH_DICT_30s = {
-    'n_export': "",
-    'average_flow': "",
-    'flash_flow': "",
+    'n_export': "F:/NCI_NDR/Data NDR/updated_5.18.20/n_export_30s_fixedarea_currentpractices_global.tif",
+    'average_flow': "F:/NCI_NDR/Data streamflow FLO1K/30s_resolution/average_flow_1990_2015.tif",
+    'flash_flow': "F:/NCI_NDR/Data streamflow FLO1K/30s_resolution/mean_div_range_1990_2015.tif",
     'precip_variability': "F:/NCI_NDR/Data precip Worldclim/wc2.1_30s_bio_15.tif",
     'climate_zones': "F:/NCI_NDR/Data climate zones Koeppen-Geiger/5min_updated/Map_KG-Global/KG_1986-2010.tif",
     'irrigated_area': "F:/NCI_NDR/Data irrigation HYDE3.2/tot_irri_avg_1990_2015.tif",
@@ -72,8 +72,8 @@ _COVARIATE_PATH_DICT_30s = {
     'sanitation_table': "F:/NCI_NDR/Data sanitation/no_sanitation_provision_avg_2000-2015.csv",
     'countries_raster': "F:/NCI_NDR/Data world borders/TM_WORLD_BORDERS-03_countryid.tif",
     'depth_to_groundwater': "F:/NCI_NDR/Data HydroATLAS/gwt_cm_sav_level12_30s.tif",
-    'clay_percent': "F:/NCI_NDR/Data soil ISRIC/resolution_250m/clay/clay_0-5cm_mean.tif",
-    'sand_percent': "F:/NCI_NDR/Data soil ISRIC/resolution_250m/sand/sand_0-5cm_mean.tif",
+    'clay_percent': "F:/NCI_NDR/Data soil ISRIC/CLYPPT_M_sl6_1km_ll.tif",
+    'sand_percent': "F:/NCI_NDR/Data soil ISRIC/SNDPPT_M_sl6_1km_ll.tif",
     'cattle': "F:/NCI_NDR/Data GLW/5_Ct_2010_Da.tif",
     'pigs': "F:/NCI_NDR/Data GLW/5_Pg_2010_Da.tif",
 }
@@ -798,7 +798,7 @@ def main():
     """Program entry point."""
     # surface_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_5min_pixel'
     surface_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_30s_pixel'
-    collect_surface_covariates_points_orig(surface_outdir, resolution='30s')
+    # collect_surface_covariates_points_orig(surface_outdir, resolution='30s')
     # ground_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/groundwater_GEMStat_Gu_USGS_Ouedraogo'
     ground_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/groundwater_GEMStat_Gu_USGS_Ouedraogo_30s_pixel'
     collect_groundwater_covariates_orig(ground_outdir, resolution='30s')
