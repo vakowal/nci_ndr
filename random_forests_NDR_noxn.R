@@ -24,8 +24,9 @@ train_evaluate_rf <- function(
     noxn_obs_path, covar_df_path, stn_covar_cols, out_dir) {
   library(caret)
   noxn_obs <- read.csv(noxn_obs_path)
+  noxn_obs <- noxn_obs[, c('OBJECTID', 'noxn')]
   covar_df <- read.csv(covar_df_path)
-  covar_df[covar_df$average_flow == 0, 'flash_flow'] <- 0
+  # covar_df[covar_df$average_flow == 0, 'flash_flow'] <- 0
   stn_covar_df <- covar_df[, stn_covar_cols]
   rf_df <- merge(stn_covar_df, noxn_obs, by='OBJECTID')
   colnames(rf_df)[dim(rf_df)[2]] <- 'noxn'
@@ -66,9 +67,11 @@ NOXN_OBS <- read.csv(NOXN_OBSERVATIONS_CSV, stringsAsFactors=FALSE)
 NOXN_OBS$Sample.Date <- as.Date(NOXN_OBS$Sample.Date, format="%Y-%m-%d")
 
 # surface covariate table: 5 min pixel extent (not snapped)
-PIXEL_ORIG_COVAR_CSV <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_5min_pixel/combined_covariates.csv"
+# PIXEL_ORIG_COVAR_CSV <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_5min_pixel/combined_covariates.csv"
 # N application predictor
 # PIXEL_ORIG_COVAR_CSV <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/N_application_predictor/WB_station_orig_5min_pixel/combined_covariates.csv"
+# 30 s scale
+PIXEL_ORIG_COVAR_CSV <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_30s_pixel/combined_covariates.csv"
 
 # station metadata
 STATION_METADATA_CSV <- "F:/NCI_NDR/Data worldbank/station_data/station_metadata.csv"
@@ -117,9 +120,11 @@ rf_covar_df <- combined_df[, 2:dim(combined_df)[2]]
 # write.csv(rf_covar_df, "C:/Users/ginge/Documents/Python/nci_ndr/noxn_predictor_df_surf.csv", row.names=FALSE)
 
 # random forests model, surface stations
-out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR_5.18.20/surface/subset_2000_2015/WB_station_orig_5min_pixel"
+# out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR_5.18.20/surface/subset_2000_2015/WB_station_orig_5min_pixel"
 # N application predictor
 # out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR_5.18.20/N_app_predictor/surface/subset_2000_2015/WB_station_orig_5min_pixel"
+# 30 sec scale
+out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR_5.18.20/surface/subset_2000_2015/WB_station_orig_30s_pixel"
 dir.create(out_dir, recursive=TRUE)
 
 # K-fold cross-validation
@@ -153,7 +158,7 @@ print(p)
 dev.off()
 
 ##### random forests for groundwater #####
-_GROUNDWATER_PREDICTORS <- c(
+GROUNDWATER_PREDICTORS <- c(
   'OBJECTID', 'n_export', 'precip_variability',
   'population', 'depth_to_groundwater', 'cattle',
   'average_flow', 'percent_no_sanitation', 'clay_percent',
@@ -162,8 +167,11 @@ _GROUNDWATER_PREDICTORS <- c(
 # covariates collected at GEMStat, USGS, China, and Ouedraogo sites combined
 noxn_obs_path <- "F:/NCI_NDR/Data groundwater merged/combined_noxn_groundwater_GEMStat_Gu_USGS_Ouedraogo.csv"
 # N application as predictor: covar_df <- read.csv("C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/N_application_predictor/groundwater_GEMStat_Gu_USGS_Ouedraogo/combined_covariates.csv")
-covar_df_path <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/groundwater_GEMStat_Gu_USGS_Ouedraogo/combined_covariates.csv"
-out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR_5.18.20/ground/GEMStat_China_USGS_Ouedraogo"
+# covar_df_path <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/groundwater_GEMStat_Gu_USGS_Ouedraogo/combined_covariates.csv"
+# out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR_5.18.20/ground/GEMStat_China_USGS_Ouedraogo"
 # out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR_5.18.20/N_app_predictor/ground/GEMStat_China_USGS_Ouedraogo"
+# 30 s scale
+covar_df_path <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/groundwater_GEMStat_Gu_USGS_Ouedraogo_30s_pixel/combined_covariates.csv"
+out_dir <- "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR_5.18.20/ground/GEMStat_China_USGS_Ouedraogo_30s"
 train_evaluate_rf(
-  noxn_obs_path, covar_df_path, _GROUNDWATER_PREDICTORS, out_dir)
+  noxn_obs_path, covar_df_path, GROUNDWATER_PREDICTORS, out_dir)
