@@ -304,7 +304,6 @@ def zonal_stats_by_objectid(raster_path, band):
     objectid_df = pandas.DataFrame(objectid_zonal_stats_dict)
     objectid_df_t = objectid_df.transpose()
     objectid_df_t['OBJECTID'] = objectid_df_t.index
-    return objectid_df_t
 
 
 def summarize_n_fert_in_watersheds():
