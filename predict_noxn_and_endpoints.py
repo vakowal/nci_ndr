@@ -7,8 +7,8 @@ from osgeo import gdal
 import numpy
 import pandas
 
-from sklearn.ensemble import RandomForestRegressor
-from joblib import dump, load
+# from sklearn.ensemble import RandomForestRegressor
+# from joblib import dump, load
 import pygeoprocessing
 
 # full dict of covariate datasets at native resolution
@@ -43,19 +43,20 @@ _BASE_DATA_PATH_DICT = {
 #     'restoration': "F:/NCI_NDR/Data NDR/updated_3.2.20/sum_aggregate_to_0.084100_n_export_restoration_napp_rate_global_md5_7f9ddf313e414a68cbb8ba204101b190.tif",
 # }
 # file prefix identifying the baseline scenario
-_N_EXPORT_BASELINE_KEY = 'fixedarea_currentpractices'
+_N_EXPORT_BASELINE_KEY = 'baseline_currentpractices'
 _N_EXPORT_PATH_LIST = [
-    'extensification_bmps_irrigated_',
-    'extensification_bmps_rainfed_',
-    'extensification_current_practices_',
-    'extensification_intensified_irrigated_',
-    'extensification_intensified_rainfed_',
-    'fixedarea_currentpractices',
-    'fixedarea_bmps_irrigated_',
-    'fixedarea_bmps_rainfed_',
-    'fixedarea_intensified_irrigated_',
-    'fixedarea_intensified_rainfed_',
-    'global_potential_vegetation_',
+    'extensification_bmps_irrigated',
+    'extensification_bmps_rainfed',
+    'extensification_current_practices',
+    'extensification_intensified_irrigated',
+    'extensification_intensified_rainfed',
+    'fixedarea_bmps_irrigated',
+    'fixedarea_bmps_rainfed',
+    'fixedarea_intensified_irrigated',
+    'fixedarea_intensified_rainfed',
+    'grazing_expansion',
+    'restoration',
+    'sustainable_currentpractices'
 ]
 
 # directory to hold temporary outputs
@@ -291,6 +292,37 @@ def calc_treatment_costs(noxn_in_drinking_water, population):
     abatement_costs[exceeded_mask] = (
         population[exceeded_mask] * cost_per_person)
     return abatement_costs
+
+
+def prepare_covariates_March2021_NDR():
+    """Align new NDR outputs with existing aligned covariates."""
+    nexport_dir = "F:/NCI_NDR/Data NDR/updated_3.27.21/resampled_by_Becky"
+    raw_nexport_path_list = [
+        os.path.join(nexport_dir, f) for f in os.listdir(nexport_dir) if
+        f.endswith('.tif')]
+
+    aligned_covariate_dir = "C:/aligned_NDR"  # "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/"
+    if not os.path.exists(aligned_covariate_dir):
+        os.makedirs(aligned_covariate_dir)
+    template_raster = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/template.tif"
+    target_pixel_size = pygeoprocessing.get_raster_info(
+        template_raster)['pixel_size']
+    target_bb = pygeoprocessing.get_raster_info(
+        template_raster)['bounding_box']
+
+    input_path_list = ([template_raster] + raw_nexport_path_list)
+    aligned_path_list = [
+        os.path.join(aligned_covariate_dir, os.path.basename(
+            f)) for f in input_path_list]
+    pygeoprocessing.align_and_resize_raster_stack(
+        input_path_list, aligned_path_list, ['near'] * len(input_path_list),
+        target_pixel_size, target_bb, raster_align_index=0)
+
+    # set nodata value for all aligned covariates to _TARGET_NODATA
+    for path in aligned_path_list:
+        reclassify_nodata(path)
+
+    # copy aligned rasters to "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/"
 
 
 def prepare_covariates_May2020_NDR():
@@ -930,18 +962,18 @@ def masked_endpoints_workflow():
 
     """
     # directory containing mean and se predictions
-    predicted_noxn_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred"
+    predicted_noxn_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.27.21/R_ranger_pred"
     # directory containing noxn from which to calc endpoints
-    sig_diff_filled_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/sig_diff_filled_noxn"
+    sig_diff_filled_dir = "C:/NCI_NDR/sig_diff_filled_noxn"
     if not os.path.exists(sig_diff_filled_dir):
         os.makedirs(sig_diff_filled_dir)
     # directory containing scenario noxn only in areas significantly different
     # from baseline
-    sig_diff_masked_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/sig_diff_masked_scenario_noxn"
+    sig_diff_masked_dir = "C:/NCI_NDR/sig_diff_masked_scenario_noxn"
     if not os.path.exists(sig_diff_masked_dir):
         os.makedirs(sig_diff_masked_dir)
     # directory containing endpoints
-    endpoint_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/endpoints"
+    endpoint_dir = "C:/NCI_NDR/endpoints"
     if not os.path.exists(endpoint_dir):
         os.makedirs(endpoint_dir)
     for fraction in ['surface', 'ground']:
@@ -977,7 +1009,7 @@ def masked_endpoints_workflow():
                     baseline_se_path, sig_diff_scenario_path,
                     sig_diff_filled_path)
     global _PROCESSING_DIR
-    _PROCESSING_DIR = os.path.join(predicted_noxn_dir, 'intermediate')
+    _PROCESSING_DIR = "C:/NCI_NDR/intermediate"  # os.path.join(predicted_noxn_dir, 'intermediate')
     calc_endpoints(sig_diff_filled_dir, endpoint_dir)
 
 
@@ -1342,18 +1374,19 @@ def main():
     # confidence_interval_wrapper()
     # ground_ci_wrapper()
     # prepare_covariates_May2020_NDR()
-    # masked_endpoints_workflow()
-    combined_zonal_stats()
-    endpoint_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/endpoints"
-    rescaled_endpoint_dir = os.path.join(
-        endpoint_dir, 'rescaled_ESA_resolution')
+    masked_endpoints_workflow()
+    # combined_zonal_stats()
+    # endpoint_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/endpoints"
+    # rescaled_endpoint_dir = os.path.join(
+    #     endpoint_dir, 'rescaled_ESA_resolution')
     # resize_endpoint_rasters(endpoint_dir, rescaled_endpoint_dir)
     # check_order_of_scenarios(endpoint_dir)
-    endpoint_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/endpoints_not_masked"
-    rescaled_endpoint_dir = os.path.join(
-        endpoint_dir, 'rescaled_ESA_resolution')
+    # endpoint_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/endpoints_not_masked"
+    # rescaled_endpoint_dir = os.path.join(
+    #     endpoint_dir, 'rescaled_ESA_resolution')
     # resize_endpoint_rasters(endpoint_dir, rescaled_endpoint_dir)
     # check_order_of_scenarios(rescaled_endpoint_dir)
+    # prepare_covariates_March2021_NDR()
 
 
 if __name__ == '__main__':

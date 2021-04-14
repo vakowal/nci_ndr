@@ -39,8 +39,9 @@ _COVARIATE_PATH_DICT = None
 
 # covariate datasets, 5 min resolution
 _COVARIATE_PATH_DICT_5min = {
-    'n_export': "F:/NCI_NDR/Data NDR/updated_5.18.20/sum_aggregate_to_0.084100_n_export_fixedarea_currentpractices_global.tif",
+    # 'n_export': "F:/NCI_NDR/Data NDR/updated_5.18.20/sum_aggregate_to_0.084100_n_export_fixedarea_currentpractices_global.tif",
     # 'n_export': "F:/NCI_NDR/Data NDR/updated_5.18.20/n_load_inputs/n_load_natveg_ag_5min.tif",
+    # 'n_export': "F:/NCI_NDR/Data NDR/updated_3.12.21/fixedarea_currentpractices_0.0841_D8_export_per_ha.tif",
     'average_flow': "F:/NCI_NDR/Data streamflow FLO1K/average_flow_1990_2015.tif",
     'flash_flow': "F:/NCI_NDR/Data streamflow FLO1K/mean_div_range_1990_2015.tif",
     'precip_variability': "F:/NCI_NDR/Data precip Worldclim/wc2.0_bio_5m_15.tif",
@@ -793,15 +794,319 @@ def collect_groundwater_covariates_orig(out_dir, resolution='5min'):
         _GROUNDWATER_STATION_SHP_PATH, intermediate_dir_path,
         combined_covariate_table_path, groundwater=True)
 
+
+def collect_accumulated_covariates():
+    """Collect values from covariate rasters accumulated by Rafa."""
+    accumulated_dir = "F:/NCI_NDR/Accumulated"
+    accumulated_path_dict = {
+        'cattle': os.path.join(
+            accumulated_dir, "5_Ct_2010_Da.tif_accumulated.tif"),
+        'pigs': os.path.join(
+            accumulated_dir, "5_Pg_2010_Da.tif_accumulated.tif"),
+        'population': os.path.join(
+            accumulated_dir, "inhabitants_avg_1990_2015.tif_accumulated.tif"),
+        'n_load': os.path.join(
+            accumulated_dir, "n_load_natveg_ag_5min.tif_accumulated.tif"),
+        'urban_extent_rc': os.path.join(
+            accumulated_dir, "perc_urban_5min.tif_accumulated.tif"),
+        'n_export': os.path.join(
+            accumulated_dir,
+            "sum_aggregate_to_0.084100_n_export_fixedarea_currentpractices_global.tif_accumulated.tif"),
+    }
+    # NORMALIZED
+    accumulated_norm_path_dict = {
+        'cattle': os.path.join(
+            accumulated_dir, "5_Ct_2010_Da.tif_accumulated_normalized.tif"),
+        'pigs': os.path.join(
+            accumulated_dir, "5_Pg_2010_Da.tif_accumulated_normalized.tif"),
+        'population': os.path.join(
+            accumulated_dir,
+            "inhabitants_avg_1990_2015.tif_accumulated_normalized.tif"),
+        'n_load': os.path.join(
+            accumulated_dir,
+            "n_load_natveg_ag_5min.tif_accumulated_normalized.tif"),
+        'urban_extent_rc': os.path.join(
+            accumulated_dir, "perc_urban_5min.tif_accumulated_normalized.tif"),
+        'n_export': os.path.join(
+            accumulated_dir,
+            "sum_aggregate_to_0.084100_n_export_fixedarea_currentpractices_global.tif_accumulated_normalized.tif"),
+    }
+    # Collect surface covariates
+    point_shp_path = _ORIG_STATION_SHP_PATH
+    df_path_list = []
+
+    # Accumulated
+    out_dir = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/accumulated/WB_station_orig_5min_pixel"
+    combined_covariate_table_path = os.path.join(
+        out_dir, 'combined_covariates.csv')
+    path_dict = accumulated_path_dict
+    intermediate_dir_path = os.path.join(
+        out_dir, 'intermediate_df_dir')
+    if not os.path.exists(intermediate_dir_path):
+        os.makedirs(intermediate_dir_path)
+
+    n_export_path = os.path.join(intermediate_dir_path, 'n_export.csv')
+    df_path_list.append(n_export_path)
+    if not os.path.exists(n_export_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['n_export'], 1,
+            'n_export_acc', n_export_path)
+
+    n_load_path = os.path.join(intermediate_dir_path, 'n_load.csv')
+    df_path_list.append(n_load_path)
+    if not os.path.exists(n_load_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['n_load'], 1,
+            'n_load_acc', n_load_path)
+
+    population_path = os.path.join(intermediate_dir_path, 'population.csv')
+    df_path_list.append(population_path)
+    if not os.path.exists(population_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['population'], 1,
+            'population_acc', population_path)
+
+    urban_extent_path = os.path.join(
+        intermediate_dir_path, 'urban_extent.csv')
+    df_path_list.append(urban_extent_path)
+    if not os.path.exists(urban_extent_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['urban_extent_rc'], 1,
+            'proportion_urban_acc', urban_extent_path)
+
+    cattle_path = os.path.join(intermediate_dir_path, 'cattle.csv')
+    df_path_list.append(cattle_path)
+    if not os.path.exists(cattle_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['cattle'],
+            1, 'cattle_acc', cattle_path)
+
+    pigs_path = os.path.join(intermediate_dir_path, 'pigs.csv')
+    df_path_list.append(pigs_path)
+    if not os.path.exists(pigs_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['pigs'],
+            1, 'pigs_acc', pigs_path)
+
+    # Accumulated and normalized
+    out_dir = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/accumulated_norm/WB_station_orig_5min_pixel"
+    path_dict = accumulated_norm_path_dict
+
+    intermediate_dir_path = os.path.join(
+        out_dir, 'intermediate_df_dir')
+    if not os.path.exists(intermediate_dir_path):
+        os.makedirs(intermediate_dir_path)
+
+    n_export_path = os.path.join(intermediate_dir_path, 'n_export.csv')
+    df_path_list.append(n_export_path)
+    if not os.path.exists(n_export_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['n_export'], 1,
+            'n_export_acc_norm', n_export_path)
+
+    n_load_path = os.path.join(intermediate_dir_path, 'n_load.csv')
+    df_path_list.append(n_load_path)
+    if not os.path.exists(n_load_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['n_load'], 1,
+            'n_load_acc_norm', n_load_path)
+
+    population_path = os.path.join(intermediate_dir_path, 'population.csv')
+    df_path_list.append(population_path)
+    if not os.path.exists(population_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['population'], 1,
+            'population_acc_norm', population_path)
+
+    urban_extent_path = os.path.join(
+        intermediate_dir_path, 'urban_extent.csv')
+    df_path_list.append(urban_extent_path)
+    if not os.path.exists(urban_extent_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['urban_extent_rc'], 1,
+            'proportion_urban_acc_norm', urban_extent_path)
+
+    cattle_path = os.path.join(intermediate_dir_path, 'cattle.csv')
+    df_path_list.append(cattle_path)
+    if not os.path.exists(cattle_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['cattle'],
+            1, 'cattle_acc_norm', cattle_path)
+
+    pigs_path = os.path.join(intermediate_dir_path, 'pigs.csv')
+    df_path_list.append(pigs_path)
+    if not os.path.exists(pigs_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['pigs'],
+            1, 'pigs_acc_norm', pigs_path)
+
+    merge_data_frame_list(df_path_list, combined_covariate_table_path)
+
+    # Collect ground covariates
+    point_shp_path = "F:/NCI_NDR/Data groundwater merged/groundwater_GEMStat_Gu_USGS_Ouedraogo.shp"
+    df_path_list = []
+
+    # Accumulated
+    out_dir = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/accumulated/groundwater_GEMStat_Gu_USGS_Ouedraogo"
+    combined_covariate_table_path = os.path.join(
+        out_dir, 'combined_covariates.csv')
+    path_dict = accumulated_path_dict
+    intermediate_dir_path = os.path.join(out_dir, 'intermediate_df_dir')
+    if not os.path.exists(intermediate_dir_path):
+        os.makedirs(intermediate_dir_path)
+
+    n_export_path = os.path.join(intermediate_dir_path, 'n_export.csv')
+    df_path_list.append(n_export_path)
+    if not os.path.exists(n_export_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['n_export'], 1,
+            'n_export_acc', n_export_path)
+
+    n_load_path = os.path.join(intermediate_dir_path, 'n_load.csv')
+    df_path_list.append(n_load_path)
+    if not os.path.exists(n_load_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['n_load'], 1,
+            'n_load_acc', n_load_path)
+
+    population_path = os.path.join(intermediate_dir_path, 'population.csv')
+    df_path_list.append(population_path)
+    if not os.path.exists(population_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['population'], 1,
+            'population_acc', population_path)
+
+    urban_extent_path = os.path.join(intermediate_dir_path, 'urban_extent.csv')
+    df_path_list.append(urban_extent_path)
+    if not os.path.exists(urban_extent_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['urban_extent_rc'], 1,
+            'proportion_urban_acc', urban_extent_path)
+
+    cattle_path = os.path.join(intermediate_dir_path, 'cattle.csv')
+    df_path_list.append(cattle_path)
+    if not os.path.exists(cattle_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['cattle'],
+            1, 'cattle_acc', cattle_path)
+
+    pigs_path = os.path.join(intermediate_dir_path, 'pigs.csv')
+    df_path_list.append(pigs_path)
+    if not os.path.exists(pigs_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['pigs'],
+            1, 'pigs_acc', pigs_path)
+
+    # Accumulated and normalized
+    out_dir = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/accumulated_normalized/groundwater_GEMStat_Gu_USGS_Ouedraogo"
+    path_dict = accumulated_norm_path_dict
+
+    intermediate_dir_path = os.path.join(out_dir, 'intermediate_df_dir')
+    if not os.path.exists(intermediate_dir_path):
+        os.makedirs(intermediate_dir_path)
+
+    n_export_path = os.path.join(intermediate_dir_path, 'n_export.csv')
+    df_path_list.append(n_export_path)
+    if not os.path.exists(n_export_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['n_export'], 1,
+            'n_export_acc_norm', n_export_path)
+
+    n_load_path = os.path.join(intermediate_dir_path, 'n_load.csv')
+    df_path_list.append(n_load_path)
+    if not os.path.exists(n_load_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['n_load'], 1,
+            'n_load_acc_norm', n_load_path)
+
+    population_path = os.path.join(intermediate_dir_path, 'population.csv')
+    df_path_list.append(population_path)
+    if not os.path.exists(population_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['population'], 1,
+            'population_acc_norm', population_path)
+
+    urban_extent_path = os.path.join(intermediate_dir_path, 'urban_extent.csv')
+    df_path_list.append(urban_extent_path)
+    if not os.path.exists(urban_extent_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['urban_extent_rc'], 1,
+            'proportion_urban_acc_norm', urban_extent_path)
+
+    cattle_path = os.path.join(intermediate_dir_path, 'cattle.csv')
+    df_path_list.append(cattle_path)
+    if not os.path.exists(cattle_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['cattle'],
+            1, 'cattle_acc_norm', cattle_path)
+
+    pigs_path = os.path.join(intermediate_dir_path, 'pigs.csv')
+    df_path_list.append(pigs_path)
+    if not os.path.exists(pigs_path):
+        raster_values_at_points(
+            point_shp_path, path_dict['pigs'],
+            1, 'pigs_acc_norm', pigs_path)
+
+
+    merge_data_frame_list(df_path_list, combined_covariate_table_path)
+
+
+def four_ndr_output_options_March_19_2021():
+    """Aggregate covariates to include four options for NDR as predictor."""
+    outer_dir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates'
+
+    # N export resampled by R
+    _COVARIATE_PATH_DICT_5min['n_export'] = "F:/NCI_NDR/Data NDR/updated_3.18.21/N_export/compress_overview_fixedarea_currentpractices_0.0841.0_D8_export.tif"
+    surface_outdir = os.path.join(
+        outer_dir, 'surface_WB_station_orig_5min_pixel_N_export_via_R')
+    collect_surface_covariates_points_orig(surface_outdir)
+    ground_outdir = os.path.join(
+        outer_dir,
+        'groundwater_GEMStat_Gu_USGS_Ouedraogo_5min_pixel_N_export_via_R')
+    collect_groundwater_covariates_orig(ground_outdir)
+
+    # N export resampled by GDAL
+    _COVARIATE_PATH_DICT_5min['n_export'] = "F:/NCI_NDR/Data NDR/updated_3.18.21/N_export/compress_overview_fixedarea_currentpractices_0.0841.0_D8_export_Gdal.tif"
+    surface_outdir = os.path.join(
+        outer_dir, 'surface_WB_station_orig_5min_pixel_N_export_via_GDAL')
+    collect_surface_covariates_points_orig(surface_outdir)
+    ground_outdir = os.path.join(
+        outer_dir,
+        'groundwater_GEMStat_Gu_USGS_Ouedraogo_5min_pixel_N_export_via_GDAL')
+    collect_groundwater_covariates_orig(ground_outdir)
+
+    # N modified load resampled by R
+    _COVARIATE_PATH_DICT_5min['n_export'] = "F:/NCI_NDR/Data NDR/updated_3.18.21/N_load/compressed_baseline_currentpractices_0.0841_D8_modified_load.tif"
+    surface_outdir = os.path.join(
+        outer_dir, 'surface_WB_station_orig_5min_pixel_N_load_via_R')
+    collect_surface_covariates_points_orig(surface_outdir)
+    ground_outdir = os.path.join(
+        outer_dir,
+        'groundwater_GEMStat_Gu_USGS_Ouedraogo_5min_pixel_N_load_via_R')
+    collect_groundwater_covariates_orig(ground_outdir)
+
+    # N modified load resampled by GDAL
+    _COVARIATE_PATH_DICT_5min['n_export'] = "F:/NCI_NDR/Data NDR/updated_3.18.21/N_load/compressed_baseline_currentpractices_0.0841_D8_modified_load_GDAL.tif"
+    surface_outdir = os.path.join(
+        outer_dir, 'surface_WB_station_orig_5min_pixel_N_load_via_GDAL')
+    collect_surface_covariates_points_orig(surface_outdir)
+    ground_outdir = os.path.join(
+        outer_dir,
+        'groundwater_GEMStat_Gu_USGS_Ouedraogo_5min_pixel_N_load_via_GDAL')
+    collect_groundwater_covariates_orig(ground_outdir)
+
+
 def main():
     """Program entry point."""
-    # surface_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_5min_pixel'
-    surface_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_30s_pixel'
-    # collect_surface_covariates_points_orig(surface_outdir, resolution='30s')
-    # ground_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/groundwater_GEMStat_Gu_USGS_Ouedraogo'
-    ground_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/groundwater_GEMStat_Gu_USGS_Ouedraogo_30s_pixel'
-    collect_groundwater_covariates_orig(ground_outdir, resolution='30s')
+    surface_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_5min_pixel'
+    # surface_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/WB_station_orig_30s_pixel'
+    collect_surface_covariates_points_orig(surface_outdir)
+    ground_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/groundwater_GEMStat_Gu_USGS_Ouedraogo'
+    # ground_outdir = 'C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Aggregated_covariates/groundwater_GEMStat_Gu_USGS_Ouedraogo_30s_pixel'
+    collect_groundwater_covariates_orig(ground_outdir)
+    # collect_accumulated_covariates()
 
 
 if __name__ == '__main__':
-    main()
+    # main()
+    four_ndr_output_options_March_19_2021()

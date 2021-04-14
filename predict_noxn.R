@@ -22,18 +22,21 @@ COVAR_PATH_LIST <- list(
 
 # aligned n export rasters for a set of scenarios
 N_EXPORT_PATH_LIST = list(
-  'extensification_bmps_irrigated_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_extensification_bmps_irrigated_global.tif",
-  'extensification_bmps_rainfed_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_extensification_bmps_rainfed_global.tif",
-  'extensification_current_practices_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_extensification_current_practices_global.tif",
-  'extensification_intensified_irrigated_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_extensification_intensified_irrigated_global.tif",
-  'extensification_intensified_rainfed_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_extensification_intensified_rainfed_global.tif",
-  'fixedarea_currentpractices'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_fixedarea_currentpractices_global.tif",
-  'fixedarea_bmps_irrigated_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_fixedarea_bmps_irrigated_global.tif",
-  'fixedarea_bmps_rainfed_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_fixedarea_bmps_rainfed_global.tif",
-  'fixedarea_intensified_irrigated_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_fixedarea_intensified_irrigated_global.tif",
-  'fixedarea_intensified_rainfed_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_fixedarea_intensified_rainfed_global.tif",
-  'global_potential_vegetation_'="C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/sum_aggregate_to_0.084100_n_export_global_potential_vegetation_global.tif"
+  'extensification_bmps_irrigated'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/compressed_extensification_bmps_irrigated_300.0_D8_export_reduce28sum_md5_f28fd3b8e444044165bf8356f16da2cb.tif',
+  'extensification_bmps_rainfed'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/compressed_extensification_bmps_rainfed_300.0_D8_export_reduce28sum_md5_6bf450d1e48ce523a96ef39971d14dff.tif',
+  'extensification_current_practices'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/compressed_extensification_current_practices_300.0_D8_export_reduce28sum_md5_a7f97c7ea643732dcb9a37a38261d9be.tif',
+  'extensification_intensified_irrigated'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/compressed_extensification_intensified_irrigated_300.0_D8_export_reduce28sum_md5_91b8c02c962a3ded85d7437a04544518.tif',
+  'extensification_intensified_rainfed'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/compressed_extensification_intensified_rainfed_300.0_D8_export_reduce28sum_md5_1160ef8f4fb9b51a92c45fa7c081da97.tif',
+  'fixedarea_bmps_irrigated'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/compressed_fixedarea_bmps_irrigated_300.0_D8_export_reduce28sum_md5_ce57595bd7f1aa0ee0b5aba91c5e5417.tif',
+  'fixedarea_bmps_rainfed'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/compressed_fixedarea_bmps_rainfed_300.0_D8_export_reduce28sum_md5_b7d9eda12a76ceb6c5ed72501304318f.tif',
+  'fixedarea_intensified_irrigated'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/compressed_fixedarea_intensified_irrigated_300.0_D8_export_reduce28sum_md5_5ed83d7dd073df9dd2ff5e55f493d1c9.tif',
+  'fixedarea_intensified_rainfed'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/compressed_fixedarea_intensified_rainfed_300.0_D8_export_reduce28sum_md5_41c8043f4399419fcc995117be7c2a8f.tif',
+  'grazing_expansion'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/compressed_grazing_expansion_300.0_D8_export_reduce28sum_md5_ebc5c0c91bbabff356fa1a0c57bfc01c.tif',
+  'restoration'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/compressed_restoration_300.0_D8_export_reduce28sum_md5_0f7080ca2c1cf5b8ee10d7b39e3cce85.tif',
+  'sustainable_currentpractices'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/compressed_sustainable_currentpractices_300.0_D8_export_reduce28sum_md5_11cbca90d8c151b07336aba2e917ec05.tif',
+  'baseline_currentpractices'='C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/subset_2000_2015/intermediate/aligned_covariates_ground/baseline_currentpractices_300.0_D8_export.tif'
 )
+
 # Use random foresets model to predict se from a raster stack
 predict_se <- function(covar_stack, model, save_as) {
   out <- raster(covar_stack, layer=0)
@@ -150,9 +153,9 @@ ranger_train_df <- train_df[complete.cases(train_df), ]
 ranger_model <- ranger(noxn~., keep.inbag=TRUE, data=ranger_train_df,
                        mtry=2, min.node.size=5, importance='impurity')  # using mtry and min.node.size tuned by caret
 
-output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred"
+output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.27.21/R_ranger_pred"
 dir.create(output_dir, recursive=TRUE, showWarnings=FALSE)
-intermediate_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred/surf_intermediate"
+intermediate_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.27.21/R_ranger_pred/surf_intermediate"
 dir.create(intermediate_dir)
 covariate_df <- subset(train_df, select=-c(noxn))
 covariate_name_list <- colnames(covariate_df)
@@ -178,19 +181,21 @@ ranger_ground_model <- ranger(
   noxn~., keep.inbag=TRUE, data=ranger_train_df, mtry=2, min.node.size=5,
   importance='impurity')  # using mtry and min.node.size tuned by caret
 
-output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/Ouedraogo_USGS_China_GEMStat/R_ranger_pred"
+output_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.27.21/Ouedraogo_USGS_China_GEMStat/R_ranger_pred"
 dir.create(output_dir, recursive=TRUE, showWarnings=FALSE)
-intermediate_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/Ouedraogo_USGS_China_GEMStat/R_ranger_pred/ground_intermediate"
+intermediate_dir <- "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.27.21/Ouedraogo_USGS_China_GEMStat/R_ranger_pred/ground_intermediate"
 dir.create(intermediate_dir, recursive=TRUE, showWarnings=FALSE)
 covariate_df <- subset(train_df, select=-c(noxn))
 covariate_name_list <- colnames(covariate_df)
-for (scenario in c("fixedarea_currentpractices")) {  # names(N_EXPORT_PATH_LIST)) {  # TODO change back
+for (scenario in names(N_EXPORT_PATH_LIST)) {  # c("fixedarea_currentpractices")) {
   COVAR_PATH_LIST[['n_export']] = N_EXPORT_PATH_LIST[[scenario]]
   response_target_path <- paste(output_dir, paste(
     "ground_noxn_", scenario, ".tif", sep=''), sep='/')
   se_target_path <- paste(output_dir, paste(
     "ground_noxn_se_", scenario, ".tif", sep=''), sep='/')
-  tile_and_predict(
-    intermediate_dir, EXTENT_DF, covariate_name_list, COVAR_PATH_LIST,
-    ranger_ground_model, response_target_path, se_target_path)
+  if(!file.exists(response_target_path)){
+    tile_and_predict(
+      intermediate_dir, EXTENT_DF, covariate_name_list, COVAR_PATH_LIST,
+      ranger_ground_model, response_target_path, se_target_path)
+  }
 }
