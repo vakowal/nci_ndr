@@ -653,7 +653,7 @@ def calc_endpoints(noxn_dir, output_dir):
     if not os.path.isfile(background_cancer_rate_path):
         calc_background_cancer_rate_raster(background_cancer_rate_path)
 
-    for scenario_key in _N_EXPORT_PATH_LIST:
+    for scenario_key in ([_N_EXPORT_BASELINE_KEY] + _N_EXPORT_PATH_LIST):
         surface_noxn_path = os.path.join(
             noxn_dir, 'surface_noxn_{}.tif'.format(scenario_key))
         ground_noxn_path = os.path.join(
@@ -1056,93 +1056,93 @@ def combined_zonal_stats():
     """Calculate zonal stats by country for inputs and endpoints."""
     # scenarios for which to contrast zonal stats
     scenario_list = [
-        'global_potential_vegetation_',
-        'fixedarea_currentpractices',
-        'extensification_intensified_irrigated_']
+        'extensification_bmps_irrigated',
+        'extensification_current_practices',
+        'extensification_intensified_rainfed']
     countries_shp_path = "F:/NCI_NDR/Data world borders/TM_WORLD_BORDERS-0.3.shp"
     fid_field = 'ISO3'
 
-    filled_noxn_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/sig_diff_filled_noxn"
-    masked_noxn_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/sig_diff_masked_scenario_noxn"
-    raw_noxn_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/R_ranger_pred"
+    filled_noxn_dir = "C:/NCI_NDR/sig_diff_filled_noxn"
+    masked_noxn_dir = "C:/NCI_NDR/sig_diff_masked_scenario_noxn"
+    raw_noxn_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.27.21/R_ranger_pred"
     df_list = []
     # N application by country: mean
     # TODO
 
     # N export by country: mean
-    n_export_pattern = "F:/NCI_NDR/Data NDR/updated_5.18.20/sum_aggregate_to_0.084100_n_export_<scenario>global.tif"
-    for scenario_id in scenario_list:
-        if scenario_id == 'fixedarea_currentpractices':
-            scenario_id = 'fixedarea_currentpractices_'  # hack
-        n_export_path = n_export_pattern.replace('<scenario>', scenario_id)
-        zonal_df = zonal_stat_data_frame(
-            n_export_path, countries_shp_path, fid_field)
-        mean_df = zonal_df[[fid_field, 'mean']]
-        mean_df.rename(
-            index=str,
-            columns={'mean': 'n_export_mean_{}'.format(scenario_id)},
-            inplace=True)
-        df_list.append(mean_df)
+    # n_export_pattern = "F:/NCI_NDR/Data NDR/updated_5.18.20/sum_aggregate_to_0.084100_n_export_<scenario>global.tif"
+    # for scenario_id in scenario_list:
+    #     if scenario_id == 'fixedarea_currentpractices':
+    #         scenario_id = 'fixedarea_currentpractices_'  # hack
+    #     n_export_path = n_export_pattern.replace('<scenario>', scenario_id)
+    #     zonal_df = zonal_stat_data_frame(
+    #         n_export_path, countries_shp_path, fid_field)
+    #     mean_df = zonal_df[[fid_field, 'mean']]
+    #     mean_df.rename(
+    #         index=str,
+    #         columns={'mean': 'n_export_mean_{}'.format(scenario_id)},
+    #         inplace=True)
+    #     df_list.append(mean_df)
 
-    # nitrate in groundwater by country, masked: mean
-    masked_ground_pattern = os.path.join(
-        filled_noxn_dir, "ground_noxn_<scenario>.tif")
-    for scenario_id in scenario_list:
-        gr_noxn_path = masked_ground_pattern.replace('<scenario>', scenario_id)
-        zonal_df = zonal_stat_data_frame(
-            gr_noxn_path, countries_shp_path, fid_field)
-        mean_df = zonal_df[[fid_field, 'mean']]
-        mean_df.rename(
-            index=str,
-            columns={'mean': 'ground_noxn_masked_mean_{}'.format(scenario_id)},
-            inplace=True)
-        df_list.append(mean_df)
+    # # nitrate in groundwater by country, masked: mean
+    # masked_ground_pattern = os.path.join(
+    #     filled_noxn_dir, "ground_noxn_<scenario>.tif")
+    # for scenario_id in scenario_list:
+    #     gr_noxn_path = masked_ground_pattern.replace('<scenario>', scenario_id)
+    #     zonal_df = zonal_stat_data_frame(
+    #         gr_noxn_path, countries_shp_path, fid_field)
+    #     mean_df = zonal_df[[fid_field, 'mean']]
+    #     mean_df.rename(
+    #         index=str,
+    #         columns={'mean': 'ground_noxn_masked_mean_{}'.format(scenario_id)},
+    #         inplace=True)
+    #     df_list.append(mean_df)
 
     # nitrate in surfacewater by country, masked: mean
-    masked_surf_pattern = os.path.join(
-        filled_noxn_dir, "surface_noxn_<scenario>.tif")
-    for scenario_id in scenario_list:
-        surf_noxn_path = masked_surf_pattern.replace(
-            '<scenario>', scenario_id)
-        zonal_df = zonal_stat_data_frame(
-            surf_noxn_path, countries_shp_path, fid_field)
-        mean_df = zonal_df[[fid_field, 'mean']]
-        mean_df.rename(
-            index=str,
-            columns={'mean': 'surf_noxn_masked_mean_{}'.format(scenario_id)},
-            inplace=True)
-        df_list.append(mean_df)
+    # masked_surf_pattern = os.path.join(
+    #     filled_noxn_dir, "surface_noxn_<scenario>.tif")
+    # for scenario_id in scenario_list:
+    #     surf_noxn_path = masked_surf_pattern.replace(
+    #         '<scenario>', scenario_id)
+    #     zonal_df = zonal_stat_data_frame(
+    #         surf_noxn_path, countries_shp_path, fid_field)
+    #     mean_df = zonal_df[[fid_field, 'mean']]
+    #     mean_df.rename(
+    #         index=str,
+    #         columns={'mean': 'surf_noxn_masked_mean_{}'.format(scenario_id)},
+    #         inplace=True)
+    #     df_list.append(mean_df)
 
-    # nitrate in groundwater by country, not masked: mean
-    ground_pattern = os.path.join(raw_noxn_dir, "ground_noxn_<scenario>.tif")
-    for scenario_id in scenario_list:
-        gr_noxn_path = ground_pattern.replace('<scenario>', scenario_id)
-        zonal_df = zonal_stat_data_frame(
-            gr_noxn_path, countries_shp_path, fid_field)
-        mean_df = zonal_df[[fid_field, 'mean']]
-        mean_df.rename(
-            index=str,
-            columns={'mean': 'ground_noxn_mean_{}'.format(scenario_id)},
-            inplace=True)
-        df_list.append(mean_df)
+    # # nitrate in groundwater by country, not masked: mean
+    # ground_pattern = os.path.join(raw_noxn_dir, "ground_noxn_<scenario>.tif")
+    # for scenario_id in scenario_list:
+    #     gr_noxn_path = ground_pattern.replace('<scenario>', scenario_id)
+    #     zonal_df = zonal_stat_data_frame(
+    #         gr_noxn_path, countries_shp_path, fid_field)
+    #     mean_df = zonal_df[[fid_field, 'mean']]
+    #     mean_df.rename(
+    #         index=str,
+    #         columns={'mean': 'ground_noxn_mean_{}'.format(scenario_id)},
+    #         inplace=True)
+    #     df_list.append(mean_df)
 
-    # nitrate in surfacewater by country, not masked: mean
-    surf_pattern = os.path.join(
-        raw_noxn_dir, "surface_noxn_<scenario>.tif")
-    for scenario_id in scenario_list:
-        surf_noxn_path = surf_pattern.replace(
-            '<scenario>', scenario_id)
-        zonal_df = zonal_stat_data_frame(
-            surf_noxn_path, countries_shp_path, fid_field)
-        mean_df = zonal_df[[fid_field, 'mean']]
-        mean_df.rename(
-            index=str,
-            columns={'mean': 'surf_noxn_mean_{}'.format(scenario_id)},
-            inplace=True)
-        df_list.append(mean_df)
+    # # nitrate in surfacewater by country, not masked: mean
+    # surf_pattern = os.path.join(
+    #     raw_noxn_dir, "surface_noxn_<scenario>.tif")
+    # for scenario_id in scenario_list:
+    #     surf_noxn_path = surf_pattern.replace(
+    #         '<scenario>', scenario_id)
+    #     zonal_df = zonal_stat_data_frame(
+    #         surf_noxn_path, countries_shp_path, fid_field)
+    #     mean_df = zonal_df[[fid_field, 'mean']]
+    #     mean_df.rename(
+    #         index=str,
+    #         columns={'mean': 'surf_noxn_mean_{}'.format(scenario_id)},
+    #         inplace=True)
+    #     df_list.append(mean_df)
 
     # cancer cases, masked: sum
-    masked_cases_pattern = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/endpoints/cancer_cases_<scenario>.tif"
+    masked_cases_pattern = "C:/NCI_NDR/endpoints/cancer_cases_<scenario>.tif"
     for scenario_id in scenario_list:
         cases_path = masked_cases_pattern.replace(
             '<scenario>', scenario_id)
@@ -1155,8 +1155,8 @@ def combined_zonal_stats():
             inplace=True)
         df_list.append(sum_df)
 
-    # cancer cases, not masked: sum
-    cases_pattern = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/endpoints_not_masked/cancer_cases_<scenario>.tif"
+    # cancer cases, masked and protected areas mosaicked in
+    cases_pattern = "C:/NCI_NDR/endpoints/masked_protected_areas/cancer_cases_<scenario>.tif"
     for scenario_id in scenario_list:
         cases_path = cases_pattern.replace('<scenario>', scenario_id)
         zonal_df = zonal_stat_data_frame(
@@ -1164,89 +1164,90 @@ def combined_zonal_stats():
         sum_df = zonal_df[[fid_field, 'sum']]
         sum_df.rename(
             index=str,
-            columns={'sum': 'cancer_cases_sum_{}'.format(scenario_id)},
+            columns={'sum': 'cancer_cases_wdpa_mask_sum_{}'.format(
+                scenario_id)},
             inplace=True)
         df_list.append(sum_df)
 
     # calculate % of country that is masked by overlapping confidence intervals
     # ground
-    gr_filled_pattern = os.path.join(
-        filled_noxn_dir, 'ground_noxn_<scenario>.tif')
-    gr_masked_pattern = os.path.join(
-        masked_noxn_dir, 'ground_noxn_<scenario>.tif')
-    for scenario_id in scenario_list:
-        if scenario_id == 'fixedarea_currentpractices':
-            continue
-        filled_noxn_path = gr_filled_pattern.replace('<scenario>', scenario_id)
-        zonal_df = zonal_stat_data_frame(
-            filled_noxn_path, countries_shp_path, fid_field)
-        filled_count_df = zonal_df[[fid_field, 'count']]
-        filled_count_df.rename(
-            index=str, columns={'count': 'filled_count'},
-            inplace=True)
+    # gr_filled_pattern = os.path.join(
+    #     filled_noxn_dir, 'ground_noxn_<scenario>.tif')
+    # gr_masked_pattern = os.path.join(
+    #     masked_noxn_dir, 'ground_noxn_<scenario>.tif')
+    # for scenario_id in scenario_list:
+    #     if scenario_id == 'fixedarea_currentpractices':
+    #         continue
+    #     filled_noxn_path = gr_filled_pattern.replace('<scenario>', scenario_id)
+    #     zonal_df = zonal_stat_data_frame(
+    #         filled_noxn_path, countries_shp_path, fid_field)
+    #     filled_count_df = zonal_df[[fid_field, 'count']]
+    #     filled_count_df.rename(
+    #         index=str, columns={'count': 'filled_count'},
+    #         inplace=True)
 
-        masked_noxn_path = gr_masked_pattern.replace('<scenario>', scenario_id)
-        zonal_df = zonal_stat_data_frame(
-            masked_noxn_path, countries_shp_path, fid_field)
-        masked_count_df = zonal_df[[fid_field, 'count']]
-        masked_count_df.rename(
-            index=str, columns={'count': 'masked_count'},
-            inplace=True)
+    #     masked_noxn_path = gr_masked_pattern.replace('<scenario>', scenario_id)
+    #     zonal_df = zonal_stat_data_frame(
+    #         masked_noxn_path, countries_shp_path, fid_field)
+    #     masked_count_df = zonal_df[[fid_field, 'count']]
+    #     masked_count_df.rename(
+    #         index=str, columns={'count': 'masked_count'},
+    #         inplace=True)
 
-        merged_df = filled_count_df.merge(
-            masked_count_df, on=fid_field, suffixes=(False, False),
-            validate="one_to_one")
-        merged_df['percent_unmasked'] = (
-            merged_df['masked_count'] / merged_df['filled_count'])
-        perc_masked_df = merged_df[[fid_field, 'percent_unmasked']]
-        perc_masked_df.rename(
-            index=str, columns={
-                'percent_unmasked': 'percent_unmasked_ground_{}'.format(
-                    scenario_id)},
-            inplace=True)
-        df_list.append(perc_masked_df)
+    #     merged_df = filled_count_df.merge(
+    #         masked_count_df, on=fid_field, suffixes=(False, False),
+    #         validate="one_to_one")
+    #     merged_df['percent_unmasked'] = (
+    #         merged_df['masked_count'] / merged_df['filled_count'])
+    #     perc_masked_df = merged_df[[fid_field, 'percent_unmasked']]
+    #     perc_masked_df.rename(
+    #         index=str, columns={
+    #             'percent_unmasked': 'percent_unmasked_ground_{}'.format(
+    #                 scenario_id)},
+    #         inplace=True)
+    #     df_list.append(perc_masked_df)
 
-    # surface
-    surf_filled_pattern = os.path.join(
-        filled_noxn_dir, 'surface_noxn_<scenario>.tif')
-    surf_masked_pattern = os.path.join(
-        masked_noxn_dir, 'surface_noxn_<scenario>.tif')
-    for scenario_id in scenario_list:
-        if scenario_id == 'fixedarea_currentpractices':
-            continue
-        filled_noxn_path = surf_filled_pattern.replace(
-            '<scenario>', scenario_id)
-        zonal_df = zonal_stat_data_frame(
-            filled_noxn_path, countries_shp_path, fid_field)
-        filled_count_df = zonal_df[[fid_field, 'count']]
-        filled_count_df.rename(
-            index=str, columns={'count': 'filled_count'},
-            inplace=True)
+    # # surface
+    # surf_filled_pattern = os.path.join(
+    #     filled_noxn_dir, 'surface_noxn_<scenario>.tif')
+    # surf_masked_pattern = os.path.join(
+    #     masked_noxn_dir, 'surface_noxn_<scenario>.tif')
+    # for scenario_id in scenario_list:
+    #     if scenario_id == 'fixedarea_currentpractices':
+    #         continue
+    #     filled_noxn_path = surf_filled_pattern.replace(
+    #         '<scenario>', scenario_id)
+    #     zonal_df = zonal_stat_data_frame(
+    #         filled_noxn_path, countries_shp_path, fid_field)
+    #     filled_count_df = zonal_df[[fid_field, 'count']]
+    #     filled_count_df.rename(
+    #         index=str, columns={'count': 'filled_count'},
+    #         inplace=True)
 
-        masked_noxn_path = surf_masked_pattern.replace(
-            '<scenario>', scenario_id)
-        zonal_df = zonal_stat_data_frame(
-            masked_noxn_path, countries_shp_path, fid_field)
-        masked_count_df = zonal_df[[fid_field, 'count']]
-        masked_count_df.rename(
-            index=str, columns={'count': 'masked_count'},
-            inplace=True)
+    #     masked_noxn_path = surf_masked_pattern.replace(
+    #         '<scenario>', scenario_id)
+    #     zonal_df = zonal_stat_data_frame(
+    #         masked_noxn_path, countries_shp_path, fid_field)
+    #     masked_count_df = zonal_df[[fid_field, 'count']]
+    #     masked_count_df.rename(
+    #         index=str, columns={'count': 'masked_count'},
+    #         inplace=True)
 
-        merged_df = filled_count_df.merge(
-            masked_count_df, on=fid_field, suffixes=(False, False),
-            validate="one_to_one")
-        merged_df['percent_unmasked'] = (
-            merged_df['masked_count'] / merged_df['filled_count'])
-        perc_masked_df = merged_df[[fid_field, 'percent_unmasked']]
-        perc_masked_df.rename(
-            index=str, columns={
-                'percent_unmasked': 'percent_unmasked_surface_{}'.format(
-                    scenario_id)},
-            inplace=True)
-        df_list.append(perc_masked_df)
+    #     merged_df = filled_count_df.merge(
+    #         masked_count_df, on=fid_field, suffixes=(False, False),
+    #         validate="one_to_one")
+    #     merged_df['percent_unmasked'] = (
+    #         merged_df['masked_count'] / merged_df['filled_count'])
+    #     perc_masked_df = merged_df[[fid_field, 'percent_unmasked']]
+    #     perc_masked_df.rename(
+    #         index=str, columns={
+    #             'percent_unmasked': 'percent_unmasked_surface_{}'.format(
+    #                 scenario_id)},
+    #         inplace=True)
+    #     df_list.append(perc_masked_df)
 
     # merge data frames together
-    combined_df_path = "C:/Users/ginge/Dropbox/NatCap_backup/NCI WB/Analysis_results/Updated_NDR_5.18.20/countries_zonal_statistics_summary.csv"
+    combined_df_path = "C:/NCI_NDR/countries_zonal_statistics_summary.csv"
     combined_df = df_list[0]
     df_i = 1
     while df_i < len(df_list):
@@ -1332,13 +1333,15 @@ def resize_endpoint_rasters(endpoint_dir, rescaled_endpoint_dir):
 
     if not os.path.exists(rescaled_endpoint_dir):
         os.makedirs(rescaled_endpoint_dir)
-    ESA_path = "F:/ESA_landcover_2015/product/ESACCI-LC-L4-LCCS-Map-300m-P1Y-2015-v2.0.7.tif"
+    ESA_path = "F:/KBA_ES_archive/ESA_landcover_2015/product/ESACCI-LC-L4-LCCS-Map-300m-P1Y-2015-v2.0.7.tif"
     target_pixel_size = pygeoprocessing.get_raster_info(
         ESA_path)['pixel_size']
 
     input_path_list = [
         os.path.join(endpoint_dir, f) for f in os.listdir(endpoint_dir) if
         f.startswith('cancer_cases') & f.endswith('.tif')]
+    # TODO remove this
+    input_path_list = ["C:/NCI_NDR/endpoints/cancer_cases_baseline_currentpractices.tif"]
     input_pixel_size = pygeoprocessing.get_raster_info(
         input_path_list[0])['pixel_size']
     divisor = (input_pixel_size[0] / target_pixel_size[0]) ** 2
@@ -1368,19 +1371,134 @@ def resize_endpoint_rasters(endpoint_dir, rescaled_endpoint_dir):
     shutil.rmtree(intermediate_dir)
 
 
+def mosaic_protected_areas(rescaled_endpoint_dir, masked_protected_areas_dir):
+    """Mosaic cancer cases in protected areas from restoration scenario.
+
+    Here we are patching a missing link in the scenario creation workflow.
+    Protected areas were not treated correctly in the scenarios that went into
+    running NDR, so instead we will mosaic final results (cancer cases) in to
+    every scenario from the restoration scenario, inside areas defined by
+    protected areas mask.
+
+    Parameters:
+        rescaled_endpoint_dir (string): path to directory containing rescaled
+            cancer cases rasters matching the resolution of ESA landcover
+        masked_protected_areas_dir (string): path to directory where masked
+            cancer cases rasters should be created
+
+    Side effects:
+        creates a copy of each cancer cases raster in
+            `masked_protected_areas_dir` which has cancer cases values from
+            restoration scenario inside protected areas
+
+    """
+    def mosaic_op(target_ar, restoration_ar, *mask_list):
+        """Mosaic values according to a stack of masks.
+
+        Where any raster in `mask_list` is 1, mosaic the value from
+        restoration_ar into target_ar.
+
+        """
+        mosaic_mask = numpy.any(
+            numpy.isclose(numpy.array(mask_list), 1), axis=0)
+        result = numpy.copy(target_ar)
+        result[mosaic_mask] = restoration_ar[mosaic_mask]
+        return result
+
+    pa_dir = "F:/NCI_NDR/Data protected areas"
+    # applied to all layers
+    all_mask_path = os.path.join(
+        pa_dir, 'aligned_to_esa', 'wdpa_iucn_cat_i-iv.tif')
+    # applied to all expansion layers
+    expansion_mask_path = os.path.join(
+        pa_dir,
+        'wdpa_iucn_cat_v_full_md5_590504ff12a06f2ca3f080121d655cc4.tif')
+    # applied to all layers except grazing
+    allbutgrazing_mask_path = os.path.join(
+        pa_dir, 'aligned_to_esa', 'wdpa_iucn_cat_vi.tif')
+
+    restoration_path = os.path.join(
+        rescaled_endpoint_dir, 'cancer_cases_restoration.tif')
+
+    if not os.path.exists(masked_protected_areas_dir):
+        os.makedirs(masked_protected_areas_dir)
+
+    # all three masks
+    three_mask_list = [
+        'extensification_bmps_irrigated', 'extensification_bmps_rainfed',
+        'extensification_current_practices',
+        'extensification_intensified_irrigated',
+        'extensification_intensified_rainfed']
+    mask_list = [all_mask_path, expansion_mask_path, allbutgrazing_mask_path]
+    for scenario_key in three_mask_list:
+        target_path = os.path.join(
+            rescaled_endpoint_dir,
+            'cancer_cases_{}.tif'.format(scenario_key))
+        mosaic_path = os.path.join(
+            masked_protected_areas_dir,
+            'cancer_cases_{}.tif'.format(scenario_key))
+        if not os.path.exists(mosaic_path):
+            pygeoprocessing.raster_calculator(
+                [(path, 1) for path in [target_path, restoration_path] +
+                mask_list], mosaic_op, mosaic_path, gdal.GDT_Float32,
+                _TARGET_NODATA)
+
+    two_mask_list = [
+        'baseline_currentpractices', 'fixedarea_bmps_irrigated',
+        'fixedarea_bmps_rainfed', 'fixedarea_intensified_irrigated',
+        'fixedarea_intensified_rainfed', 'sustainable_currentpractices']
+    mask_list = [all_mask_path, allbutgrazing_mask_path]
+    for scenario_key in two_mask_list:
+        target_path = os.path.join(
+            rescaled_endpoint_dir,
+            'cancer_cases_{}.tif'.format(scenario_key))
+        mosaic_path = os.path.join(
+            masked_protected_areas_dir,
+            'cancer_cases_{}.tif'.format(scenario_key))
+        if not os.path.exists(mosaic_path):
+            pygeoprocessing.raster_calculator(
+                [(path, 1) for path in [target_path, restoration_path] +
+                mask_list], mosaic_op, mosaic_path, gdal.GDT_Float32,
+                _TARGET_NODATA)
+
+    scenario_key = 'grazing_expansion'
+    mask_list = [all_mask_path, expansion_mask_path]
+    target_path = os.path.join(
+        rescaled_endpoint_dir,
+        'cancer_cases_{}.tif'.format(scenario_key))
+    mosaic_path = os.path.join(
+        masked_protected_areas_dir,
+        'cancer_cases_{}.tif'.format(scenario_key))
+    if not os.path.exists(mosaic_path):
+        pygeoprocessing.raster_calculator(
+            [(path, 1) for path in [target_path, restoration_path] +
+            mask_list], mosaic_op, mosaic_path, gdal.GDT_Float32,
+            _TARGET_NODATA)
+
+
+    # copy restoration scenario to mosaic dir, to be shared with Peter
+    shutil.copyfile(
+        restoration_path, os.path.join(
+            masked_protected_areas_dir, 'cancer_cases_restoration.tif'))
+
+
 def main():
     """Program entry point."""
     # predict_endpoints_only()
     # confidence_interval_wrapper()
     # ground_ci_wrapper()
     # prepare_covariates_May2020_NDR()
-    masked_endpoints_workflow()
-    # combined_zonal_stats()
+    # masked_endpoints_workflow()
     # endpoint_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/endpoints"
-    # rescaled_endpoint_dir = os.path.join(
-    #     endpoint_dir, 'rescaled_ESA_resolution')
+    endpoint_dir = "C:/NCI_NDR/endpoints"
+    check_order_of_scenarios(endpoint_dir)
+    rescaled_endpoint_dir = os.path.join(
+        endpoint_dir, 'rescaled_ESA_resolution')
     # resize_endpoint_rasters(endpoint_dir, rescaled_endpoint_dir)
-    # check_order_of_scenarios(endpoint_dir)
+    masked_protected_areas_dir = os.path.join(
+        endpoint_dir, 'masked_protected_areas')
+    mosaic_protected_areas(rescaled_endpoint_dir, masked_protected_areas_dir)
+    # combined_zonal_stats()
     # endpoint_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/endpoints_not_masked"
     # rescaled_endpoint_dir = os.path.join(
     #     endpoint_dir, 'rescaled_ESA_resolution')
