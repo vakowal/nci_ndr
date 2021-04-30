@@ -1055,12 +1055,9 @@ def zonal_stat_data_frame(
 def combined_zonal_stats():
     """Calculate zonal stats by country for inputs and endpoints."""
     # scenarios for which to contrast zonal stats
-    scenario_list = [
-        'extensification_bmps_irrigated',
-        'extensification_current_practices',
-        'extensification_intensified_rainfed']
+    scenario_list = [_N_EXPORT_BASELINE_KEY] + _N_EXPORT_PATH_LIST
     countries_shp_path = "F:/NCI_NDR/Data world borders/TM_WORLD_BORDERS-0.3.shp"
-    fid_field = 'ISO3'
+    fid_field = 'NAME'  # 'ISO3'
 
     filled_noxn_dir = "C:/NCI_NDR/sig_diff_filled_noxn"
     masked_noxn_dir = "C:/NCI_NDR/sig_diff_masked_scenario_noxn"
@@ -1070,19 +1067,17 @@ def combined_zonal_stats():
     # TODO
 
     # N export by country: mean
-    # n_export_pattern = "F:/NCI_NDR/Data NDR/updated_5.18.20/sum_aggregate_to_0.084100_n_export_<scenario>global.tif"
-    # for scenario_id in scenario_list:
-    #     if scenario_id == 'fixedarea_currentpractices':
-    #         scenario_id = 'fixedarea_currentpractices_'  # hack
-    #     n_export_path = n_export_pattern.replace('<scenario>', scenario_id)
-    #     zonal_df = zonal_stat_data_frame(
-    #         n_export_path, countries_shp_path, fid_field)
-    #     mean_df = zonal_df[[fid_field, 'mean']]
-    #     mean_df.rename(
-    #         index=str,
-    #         columns={'mean': 'n_export_mean_{}'.format(scenario_id)},
-    #         inplace=True)
-    #     df_list.append(mean_df)
+    n_export_pattern = "F:/NCI_NDR/Data NDR/updated_3.27.21/resampled_by_Becky/renamed/compressed_<scenario>.tif"
+    for scenario_id in scenario_list:
+        n_export_path = n_export_pattern.replace('<scenario>', scenario_id)
+        zonal_df = zonal_stat_data_frame(
+            n_export_path, countries_shp_path, fid_field)
+        mean_df = zonal_df[[fid_field, 'mean']]
+        mean_df.rename(
+            index=str,
+            columns={'mean': 'n_export_mean_{}'.format(scenario_id)},
+            inplace=True)
+        df_list.append(mean_df)
 
     # # nitrate in groundwater by country, masked: mean
     # masked_ground_pattern = os.path.join(
@@ -1141,22 +1136,23 @@ def combined_zonal_stats():
     #         inplace=True)
     #     df_list.append(mean_df)
 
-    # cancer cases, masked: sum
-    masked_cases_pattern = "C:/NCI_NDR/endpoints/cancer_cases_<scenario>.tif"
+    # cancer cases, not masked: sum
+    cases_pattern = "C:/NCI_NDR/endpoints_not_masked/cancer_cases_<scenario>.tif"
     for scenario_id in scenario_list:
-        cases_path = masked_cases_pattern.replace(
+        cases_path = cases_pattern.replace(
             '<scenario>', scenario_id)
         zonal_df = zonal_stat_data_frame(
             cases_path, countries_shp_path, fid_field)
         sum_df = zonal_df[[fid_field, 'sum']]
         sum_df.rename(
             index=str,
-            columns={'sum': 'cancer_cases_masked_sum_{}'.format(scenario_id)},
+            columns={'sum': 'cancer_cases_unmasked_sum_{}'.format(
+                scenario_id)},
             inplace=True)
         df_list.append(sum_df)
 
-    # cancer cases, masked and protected areas mosaicked in
-    cases_pattern = "C:/NCI_NDR/endpoints/masked_protected_areas/cancer_cases_<scenario>.tif"
+    # cancer cases, masked
+    cases_pattern = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.27.21/endpoints/cancer_cases_<scenario>.tif"
     for scenario_id in scenario_list:
         cases_path = cases_pattern.replace('<scenario>', scenario_id)
         zonal_df = zonal_stat_data_frame(
@@ -1164,7 +1160,7 @@ def combined_zonal_stats():
         sum_df = zonal_df[[fid_field, 'sum']]
         sum_df.rename(
             index=str,
-            columns={'sum': 'cancer_cases_wdpa_mask_sum_{}'.format(
+            columns={'sum': 'cancer_cases_masked_sum_{}'.format(
                 scenario_id)},
             inplace=True)
         df_list.append(sum_df)
@@ -1247,7 +1243,7 @@ def combined_zonal_stats():
     #     df_list.append(perc_masked_df)
 
     # merge data frames together
-    combined_df_path = "C:/NCI_NDR/countries_zonal_statistics_summary.csv"
+    combined_df_path = "C:/NCI_NDR/zonal_statistics_summary.csv"
     combined_df = df_list[0]
     df_i = 1
     while df_i < len(df_list):
@@ -1255,7 +1251,8 @@ def combined_zonal_stats():
             df_list[df_i], on=fid_field, suffixes=(False, False),
             validate="one_to_one")
         df_i = df_i + 1
-    combined_df.to_csv(combined_df_path, index=False)
+    transposed_df = combined_df.transpose()
+    transposed_df.to_csv(combined_df_path)
 
 
 def check_order_of_scenarios(endpoint_dir):
@@ -1490,22 +1487,27 @@ def main():
     # prepare_covariates_May2020_NDR()
     # masked_endpoints_workflow()
     # endpoint_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/endpoints"
-    endpoint_dir = "C:/NCI_NDR/endpoints"
-    check_order_of_scenarios(endpoint_dir)
-    rescaled_endpoint_dir = os.path.join(
-        endpoint_dir, 'rescaled_ESA_resolution')
+    # endpoint_dir = "C:/NCI_NDR/endpoints"
+    # check_order_of_scenarios(endpoint_dir)
+    # rescaled_endpoint_dir = os.path.join(
+        # endpoint_dir, 'rescaled_ESA_resolution')
     # resize_endpoint_rasters(endpoint_dir, rescaled_endpoint_dir)
-    masked_protected_areas_dir = os.path.join(
-        endpoint_dir, 'masked_protected_areas')
-    mosaic_protected_areas(rescaled_endpoint_dir, masked_protected_areas_dir)
-    # combined_zonal_stats()
+    # masked_protected_areas_dir = os.path.join(
+        # endpoint_dir, 'masked_protected_areas')
+    # mosaic_protected_areas(rescaled_endpoint_dir, masked_protected_areas_dir)
     # endpoint_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_5.15.20/endpoints_not_masked"
     # rescaled_endpoint_dir = os.path.join(
     #     endpoint_dir, 'rescaled_ESA_resolution')
     # resize_endpoint_rasters(endpoint_dir, rescaled_endpoint_dir)
     # check_order_of_scenarios(rescaled_endpoint_dir)
     # prepare_covariates_March2021_NDR()
-
+    # calculate endpoints not masked
+    global _PROCESSING_DIR
+    _PROCESSING_DIR = "C:/NCI_NDR/intermediate"
+    noxn_dir = "C:/Users/ginge/Documents/NatCap/GIS_local/NCI_NDR/Results_3.27.21/R_ranger_pred"
+    endpoint_dir = "C:/NCI_NDR/endpoints_not_masked"
+    # calc_endpoints(noxn_dir, endpoint_dir)
+    combined_zonal_stats()
 
 if __name__ == '__main__':
     __spec__ = None  # for running with pdb
